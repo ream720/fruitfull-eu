@@ -1,0 +1,47 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# local tooling
+.vscode/
+.vercel/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+.env.local
+.env.*.local
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+.docs/engineering
+
+docs/engineering/
+src/notes/
+
+# AI Agent Skills & Outputs
+.agents/
+.kiro/
+.windsurf/
+input*.json
+out*.json
+
+# Local source media that is not referenced by the deployed site
+public/images/genetics/**/raw/
+public/images/fruitfull/logo/Letters_backup.png
+public/images/fruitfull/logo/Logo2_old.png

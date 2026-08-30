@@ -1,0 +1,333 @@
+---
+import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const allGenetics = await getCollection("genetics");
+
+// Separate seeds, breeder cuts, and trainers
+const seeds = allGenetics
+  .filter((g) => g.data.category !== "breeder_cut" && g.data.category !== "trainer")
+  .sort((a, b) => {
+    const dateA = a.data.releaseDate ? new Date(a.data.releaseDate).getTime() : 0;
+    const dateB = b.data.releaseDate ? new Date(b.data.releaseDate).getTime() : 0;
+    return dateB - dateA;
+  });
+
+const breederCuts = allGenetics
+  .filter((g) => g.data.category === "breeder_cut")
+  .sort((a, b) => {
+    const dateA = a.data.releaseDate ? new Date(a.data.releaseDate).getTime() : 0;
+    const dateB = b.data.releaseDate ? new Date(b.data.releaseDate).getTime() : 0;
+    return dateB - dateA;
+  });
+
+const trainers = allGenetics
+  .filter((g) => g.data.category === "trainer")
+  .sort((a, b) => {
+    const dateA = a.data.releaseDate ? new Date(a.data.releaseDate).getTime() : 0;
+    const dateB = b.data.releaseDate ? new Date(b.data.releaseDate).getTime() : 0;
+    return dateB - dateA;
+  });
+---
+
+<BaseLayout
+  title="EU Genetics Library - Fruitfull Seeds"
+  description="Browse our complete collection of premium genetics. Each strain includes detailed wash metrics, lineage information, and hashmaker notes."
+>
+  <div class="tabs-container">
+    <!-- Tab Buttons -->
+    <div class="tab-buttons" role="tablist">
+      <button
+        role="tab"
+        aria-selected="true"
+        aria-controls="panel-seeds"
+        data-tab="seeds"
+        class="tab-button active"
+      >
+        Seeds
+      </button>
+      <button
+        role="tab"
+        aria-selected="false"
+        aria-controls="panel-breeder-cuts"
+        data-tab="breeder-cuts"
+        class="tab-button"
+      >
+        Breeder Cuts
+      </button>
+      <button
+        role="tab"
+        aria-selected="false"
+        aria-controls="panel-trainer"
+        data-tab="trainer"
+        class="tab-button"
+      >
+        Trainer
+      </button>
+    </div>
+
+    <!-- Tab Panels -->
+    <div class="tab-panels">
+      <!-- Seeds Panel -->
+      <div
+        role="tabpanel"
+        id="panel-seeds"
+        data-panel="seeds"
+        class="tab-panel active"
+        aria-hidden="false"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {seeds.map((g) => (
+            <a
+              href={`/genetics/${g.slug}`}
+              class="bg-ff-bg-secondary border border-ff-border-subtle rounded-ff-lg overflow-hidden hover:scale-[1.02] hover:border-ff-grape-vivid transition-all flex flex-col h-full"
+            >
+              {g.data.heroImage && (
+                <Image
+                  src={g.data.heroImage}
+                  alt={`${g.data.name} hero`}
+                  width={640}
+                  height={384}
+                  class="w-full h-48 object-cover object-top"
+                  loading="eager"
+                />
+              )}
+              <div class="p-6 flex flex-col flex-grow bg-ff-bg-secondary relative -mt-6 rounded-t-3xl z-10">
+                <div class="flex items-start justify-between mb-2">
+                  <h2 class="text-2xl font-bold text-ff-text-primary">{g.data.name}</h2>
+                  {g.data.releaseDate && (
+                    <span class="text-xs text-ff-text-muted bg-ff-bg-tertiary px-2 py-1 rounded-ff-sm whitespace-nowrap ml-2">
+                      {g.data.releaseDate}
+                    </span>
+                  )}
+                </div>
+                <p class="text-ff-text-secondary mb-3 whitespace-normal break-words">{g.data.lineage}</p>
+                <p class="text-sm text-ff-text-muted line-clamp-3">{g.data.expressions}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <!-- Breeder Cuts Panel -->
+      <div
+        role="tabpanel"
+        id="panel-breeder-cuts"
+        data-panel="breeder-cuts"
+        class="tab-panel"
+        aria-hidden="true"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {breederCuts.length > 0 ? (
+            breederCuts.map((g) => (
+              <a
+                href={`/genetics/${g.slug}`}
+                class="bg-ff-bg-secondary border border-ff-border-subtle rounded-ff-lg overflow-hidden hover:scale-[1.02] hover:border-ff-grape-vivid transition-all flex flex-col h-full"
+              >
+                {g.data.heroImage && (
+                  <Image
+                    src={g.data.heroImage}
+                    alt={`${g.data.name} hero`}
+                    width={640}
+                    height={384}
+                    class="w-full h-48 object-cover object-top"
+                  />
+                )}
+                <div class="p-6 flex flex-col flex-grow bg-ff-bg-secondary relative -mt-6 rounded-t-3xl z-10">
+                  <div class="flex items-start justify-between mb-2">
+                    <h2 class="text-2xl font-bold text-ff-text-primary">{g.data.name}</h2>
+                    {g.data.releaseDate && (
+                      <span class="text-xs text-ff-text-muted bg-ff-bg-tertiary px-2 py-1 rounded-ff-sm whitespace-nowrap ml-2">
+                        {g.data.releaseDate}
+                      </span>
+                    )}
+                  </div>
+                  <p class="text-ff-text-secondary mb-3 whitespace-normal break-words">{g.data.lineage}</p>
+                  <p class="text-sm text-ff-text-muted line-clamp-3">{g.data.expressions}</p>
+                </div>
+              </a>
+            ))
+          ) : (
+            <div class="col-span-full text-center py-12">
+              <p class="text-ff-text-muted text-lg">Breeder cuts coming soon!</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Trainer Panel -->
+      <div
+        role="tabpanel"
+        id="panel-trainer"
+        data-panel="trainer"
+        class="tab-panel"
+        aria-hidden="true"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {trainers.length > 0 ? (
+            trainers.map((g) => (
+              <a
+                href={`/genetics/${g.slug}`}
+                class="bg-ff-bg-secondary border border-ff-border-subtle rounded-ff-lg overflow-hidden hover:scale-[1.02] hover:border-ff-grape-vivid transition-all flex flex-col h-full"
+              >
+                {g.data.heroImage && (
+                  <Image
+                    src={g.data.heroImage}
+                    alt={`${g.data.name} hero`}
+                    width={640}
+                    height={384}
+                    class="w-full h-48 object-cover object-top"
+                  />
+                )}
+                <div class="p-6 flex flex-col flex-grow bg-ff-bg-secondary relative -mt-6 rounded-t-3xl z-10">
+                  <div class="flex items-start justify-between mb-2">
+                    <h2 class="text-2xl font-bold text-ff-text-primary">{g.data.name}</h2>
+                    {g.data.releaseDate && (
+                      <span class="text-xs text-ff-text-muted bg-ff-bg-tertiary px-2 py-1 rounded-ff-sm whitespace-nowrap ml-2">
+                        {g.data.releaseDate}
+                      </span>
+                    )}
+                  </div>
+                  <p class="text-ff-text-secondary mb-3 whitespace-normal break-words">{g.data.lineage}</p>
+                  <p class="text-sm text-ff-text-muted line-clamp-3">{g.data.expressions}</p>
+                </div>
+              </a>
+            ))
+          ) : (
+            <div class="col-span-full text-center py-12">
+              <p class="text-ff-text-muted text-lg">Trainer genetics coming soon!</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .tabs-container {
+    width: 100%;
+  }
+
+  .tab-buttons {
+    display: flex;
+    gap: 0.5rem;
+    position: relative;
+    border-bottom: 1px solid var(--ff-border-subtle);
+    padding-bottom: 1px;
+    margin-bottom: 2rem;
+  }
+
+  .tab-button {
+    position: relative;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ff-text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+    z-index: 1;
+  }
+
+  .tab-button:hover {
+    color: var(--ff-text-secondary);
+    transform: translateY(-1px);
+  }
+
+  .tab-button.active {
+    color: var(--ff-grape-neon);
+  }
+
+  .tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--ff-grape-vivid), var(--ff-grape-neon));
+    border-radius: 2px 2px 0 0;
+  }
+
+  .tab-panel {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  function initTabs() {
+    const containers = document.querySelectorAll('.tabs-container');
+
+    // Check for hash on load
+    const hash = window.location.hash.slice(1);
+
+    containers.forEach((container) => {
+      const buttons = container.querySelectorAll('.tab-button');
+      const panels = container.querySelectorAll('.tab-panel');
+
+      const activateTab = (tabId: string | null) => {
+        // Update buttons
+        buttons.forEach((btn) => {
+          if (btn.getAttribute('data-tab') === tabId) {
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+          } else {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-selected', 'false');
+          }
+        });
+
+        // Update panels
+        panels.forEach((panel) => {
+          if (panel.getAttribute('data-panel') === tabId) {
+            panel.classList.add('active');
+            panel.setAttribute('aria-hidden', 'false');
+          } else {
+            panel.classList.remove('active');
+            panel.setAttribute('aria-hidden', 'true');
+          }
+        });
+      };
+
+      // Activate tab from hash if exists, otherwise keep default (which is static HTML)
+      if (hash) {
+        // Verify hash matches a valid tab, otherwise ignore
+        const isValidTab = Array.from(buttons).some(btn => btn.getAttribute('data-tab') === hash);
+        if (isValidTab) {
+          activateTab(hash);
+        }
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const tabId = button.getAttribute('data-tab');
+          activateTab(tabId);
+
+          // Update URL hash without scrolling
+          window.history.replaceState(null, '', `#${tabId}`);
+        });
+      });
+    });
+  }
+
+  // Initialize on page load and after Astro navigation
+  initTabs();
+  document.addEventListener('astro:after-swap', initTabs);
+</script>

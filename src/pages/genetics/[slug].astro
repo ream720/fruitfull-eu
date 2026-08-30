@@ -1,0 +1,579 @@
+---
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import { getCollection, getEntry } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Gallery from "../../components/Gallery.astro";
+import ReleaseCountdown from "../../components/ReleaseCountdown.astro";
+import fs from 'node:fs';
+import path from 'node:path';
+
+// In SSR mode getStaticPaths is ignored — read slug from params instead
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect("/genetics");
+}
+
+const entry = await getEntry("genetics", slug);
+
+if (!entry) {
+  return new Response(null, { status: 404, statusText: "Not Found" });
+}
+
+// Build prev/next navigation (same logic that was in getStaticPaths)
+const genetics = (await getCollection("genetics")).sort((a, b) => {
+  const dateA = a.data.releaseDate ? new Date(a.data.releaseDate).getTime() : 0;
+  const dateB = b.data.releaseDate ? new Date(b.data.releaseDate).getTime() : 0;
+  return dateB - dateA;
+});
+
+const sameCategoryItems = genetics.filter(g => g.data.category === entry.data.category);
+const indexInCategory = sameCategoryItems.findIndex(g => g.slug === entry.slug);
+const prevEntry = indexInCategory > 0 ? sameCategoryItems[indexInCategory - 1] : null;
+const nextEntry = indexInCategory < sameCategoryItems.length - 1 ? sameCategoryItems[indexInCategory + 1] : null;
+
+// This gives you a renderable component for MDX body:
+const { Content } = await entry.render();
+const { data } = entry;
+
+// Determine Sprite Path dynamically
+const spritesDir = path.join(process.cwd(), 'public', 'images', 'fruitfull', 'sprites');
+// Ensure directory exists in case of environment differences
+const spriteFiles = fs.existsSync(spritesDir) ? fs.readdirSync(spritesDir) : [];
+const targetBase = `sprite_${entry.slug.replace(/-/g, '_')}`.toLowerCase();
+
+// Find a matching file (ignoring case for safety, checking widely supported extensions)
+const matchingFile = spriteFiles.find(file => {
+  const lowerFile = file.toLowerCase();
+  return lowerFile.startsWith(targetBase + '.') &&
+         (lowerFile.endsWith('.png') || lowerFile.endsWith('.jpg') || lowerFile.endsWith('.jpeg') || lowerFile.endsWith('.webp'));
+});
+
+// Fallback to missing bow if no specific sprite found
+const spriteUrl = matchingFile
+  ? `/images/fruitfull/sprites/${matchingFile}`
+  : '/images/fruitfull/sprites/sprite_missing_bow.png';
+---
+
+<BaseLayout
+  title={data.name}
+  description={data.metaDescription || `${data.name} - ${data.lineage} | Fruitfull Seeds`}
+  showBackLink={true}
+  backLinkText="Back to Genetics"
+  backLinkHref={data.category === "breeder_cut" ? "/genetics#breeder-cuts" : data.category === "trainer" ? "/genetics#trainer" : "/genetics"}
+>
+  <article class="max-w-5xl mx-auto">
+    <!-- Hero Section -->
+    <header class="mb-12">
+      <div class="mb-6">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-ff-text-primary mb-3">{data.name}</h1>
+        <p class="text-xl md:text-2xl text-ff-text-secondary font-medium">{data.lineage}</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8 items-start">
+        {data.heroImage && (
+          <div class="flip-card-container">
+            <div class="flip-card" id="heroFlipCard">
+              <!-- Front: Hero Image -->
+              <div class="flip-card-front">
+                <div class="card-image-wrapper">
+                  <Image
+                    src={data.heroImage}
+                    alt={data.name}
+                    width={800}
+                    height={800}
+                    class="w-full h-full object-contain"
+                    loading="eager"
+                  />
+                </div>
+                <div class="flip-hint">
+
+                  <div class="hint-content">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span>Tap to flip</span>
+                  </div>
+                  <Image
+                    src={spriteUrl}
+                    alt="Hint"
+                    width={100}
+                    height={100}
+                    class="hint-sprite"
+                  />
+                </div>
+              </div>
+              <!-- Back: Collectible Card Stats -->
+              <div class="flip-card-back">
+                <div class="card-back-logo">
+                  <Image src="/images/fruitfull/logo/Logo2_new.png" alt="Fruitfull Seeds" width={400} height={400} />
+                </div>
+                <div class="card-back-content">
+                  <h3 class="card-back-title">{data.name}</h3>
+                  <p class="card-back-lineage">{data.lineage}</p>
+                  <div class="card-back-stats">
+                    <div class="stat-row">
+                      <span class="stat-label">Status</span>
+                      <span class="stat-value status-badge" data-status={data.status}>{data.status}</span>
+                    </div>
+                    {data.releaseDate && (
+                      <div class="stat-row">
+                        <span class="stat-label">Released</span>
+                        <span class="stat-value">{data.releaseDate}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div class="flip-hint flip-hint-back">
+                  <div class="hint-content">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span>Tap to flip back</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div class="space-y-6">
+          {data.overview && (
+            <div class="p-6 bg-ff-bg-secondary rounded-ff-lg border border-ff-border-subtle">
+              <div class="flex justify-between items-start mb-3 gap-4">
+                <h2 class="text-xl font-bold text-ff-text-primary">Overview</h2>
+              </div>
+              <p class="text-base text-ff-text-secondary leading-relaxed whitespace-pre-line">{data.overview}</p>
+            </div>
+          )}
+
+
+
+          {(data.gallery?.length || data.videos?.length) && (
+            <div class="p-6 bg-ff-bg-secondary rounded-ff-lg border border-ff-border-subtle">
+              <h2 class="text-xl font-bold text-ff-text-primary mb-4">Gallery</h2>
+              <Gallery images={data.gallery || []} videos={data.videos || []} productName={data.name} galleryAlt={data.galleryAlt || []} videoAlt={data.videoAlt || []} />
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <div class="grid md:grid-cols-3 gap-8 mb-12">
+      <!-- Left Column: Main Content -->
+      <div class="md:col-span-2">
+        {data.growNotes && (
+          <section class="mb-8 p-6 bg-ff-bg-secondary rounded-ff-lg border border-ff-border-subtle">
+            <h2 class="text-2xl font-bold text-ff-text-primary mb-3">Grow Notes</h2>
+            <p class="text-lg text-ff-text-secondary leading-relaxed whitespace-pre-line">{data.growNotes}</p>
+          </section>
+        )}
+
+        {data.hashmakerNotes && (
+          <section class="mb-8 p-6 bg-ff-bg-secondary rounded-ff-lg border border-ff-border-subtle">
+            <h2 class="text-2xl font-bold text-ff-text-primary mb-4">Hashmaker Notes</h2>
+            <p class="text-lg text-ff-text-secondary leading-relaxed mb-6 whitespace-pre-line">{data.hashmakerNotes}</p>
+
+            <div class="pt-4 border-t border-ff-border-subtle">
+              <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <dt class="text-sm font-semibold text-ff-resin-gold uppercase tracking-wide mb-1">Resin Type</dt>
+                  <dd class="text-ff-text-secondary">{data.washMetrics.resinType}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-semibold text-ff-resin-gold uppercase tracking-wide mb-1">Yield</dt>
+                  <dd class="text-ff-text-secondary">{data.washMetrics.yieldEstimate}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                  <dt class="text-sm font-semibold text-ff-resin-gold uppercase tracking-wide mb-1">Preferred Microns</dt>
+                  <dd class="text-ff-text-secondary">{data.washMetrics.preferredMicrons.join("µ, ")}µ</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+        )}
+
+        <section class="prose md:prose-lg max-w-none mb-8">
+          <Content />
+        </section>
+      </div>
+
+      <!-- Right Column: Sidebar Info -->
+      <div class="md:col-span-1 space-y-6">
+        <!-- Where to Find -->
+        {data.whereToFind && data.whereToFind.length > 0 && (
+        <section class="bg-ff-bg-secondary rounded-ff-lg border border-ff-border-subtle p-6">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-ff-border-subtle">
+            <h2 class="text-xl font-bold text-ff-text-primary">Where to Find</h2>
+            {data.whereToFind.some(w => w.name.includes("Rocky Mountain High")) && (
+              <>
+                <button type="button" class="text-ff-text-secondary hover:text-ff-text-primary transition-colors cursor-pointer outline-none" onclick="document.getElementById('rocky-modal').showModal()">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </button>
+                <dialog id="rocky-modal" class="bg-ff-bg-secondary border border-ff-border-subtle rounded-ff-lg shadow-2xl p-6 backdrop:bg-black/80 backdrop:backdrop-blur-sm max-w-sm w-[calc(100%-2rem)] outline-none m-auto text-ff-text-primary">
+                  <div class="flex flex-col gap-4">
+                    <div class="flex justify-between items-start">
+                      <h3 class="text-lg font-bold text-ff-resin-gold">Verified Breeder Cuts</h3>
+                      <button type="button" class="text-ff-text-secondary hover:text-ff-text-primary outline-none p-1 -m-1" onclick="document.getElementById('rocky-modal').close()">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    <p class="text-sm text-ff-text-secondary leading-relaxed">
+                      <span class="text-ff-text-primary font-semibold">RockyMountainHigh719</span> is the one and only place to find verified Mr. Autogrow Fruitfull Seeds selected breeder cuts.
+                    </p>
+                    <button type="button" class="mt-2 w-full py-2.5 bg-ff-grape-vivid hover:bg-ff-grape-neon text-white font-semibold rounded-ff-md transition-colors" onclick="document.getElementById('rocky-modal').close()">
+                      Got it
+                    </button>
+                  </div>
+                </dialog>
+              </>
+            )}
+          </div>
+          <ul class="space-y-3">
+            {data.whereToFind.map((w) => (
+              <li>
+                <a
+                  href={w.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  class="inline-flex items-center gap-3 group w-fit"
+                >
+                  {w.logo ? (
+                    <img
+                      src={w.logo}
+                      alt={w.name}
+                      class="h-10 w-auto object-contain rounded-md hover:opacity-80 transition-opacity"
+                    />
+                  ) : (
+                    <span class="text-ff-grape-vivid group-hover:text-ff-grape-neon transition-colors underline decoration-ff-grape-vivid/50 group-hover:decoration-ff-grape-neon font-medium">
+                      {w.name}
+                    </span>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+        )}
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="border-t border-ff-border-subtle pt-8 mt-12 max-w-3xl mx-auto">
+      <div class="flex justify-between items-center">
+        {prevEntry ? (
+          <a
+            href={`/genetics/${prevEntry.slug}`}
+            class="group flex items-center space-x-3 px-4 py-3 bg-ff-bg-secondary hover:bg-ff-grape-vivid/10 rounded-ff-lg border border-ff-border-subtle hover:border-ff-grape-vivid transition-all"
+          >
+            <svg class="w-5 h-5 text-ff-grape-vivid group-hover:text-ff-grape-neon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            <div class="text-left">
+              <div class="text-sm text-ff-text-secondary">Previous</div>
+              <div class="font-semibold text-ff-text-primary group-hover:text-ff-grape-vivid transition-colors">{prevEntry.data.name}</div>
+            </div>
+          </a>
+        ) : (
+          <div></div>
+        )}
+
+        {nextEntry ? (
+          <a
+            href={`/genetics/${nextEntry.slug}`}
+            class="group flex items-center space-x-3 px-4 py-3 bg-ff-bg-secondary hover:bg-ff-grape-vivid/10 rounded-ff-lg border border-ff-border-subtle hover:border-ff-grape-vivid transition-all"
+          >
+            <div class="text-right">
+              <div class="text-sm text-ff-text-secondary">Next</div>
+              <div class="font-semibold text-ff-text-primary group-hover:text-ff-grape-vivid transition-colors">{nextEntry.data.name}</div>
+            </div>
+            <svg class="w-5 h-5 text-ff-grape-vivid group-hover:text-ff-grape-neon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </a>
+        ) : (
+          <div></div>
+        )}
+      </div>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style>
+  /* Flip Card Container */
+  .flip-card-container {
+    perspective: 1000px;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .flip-card {
+    position: relative;
+    width: 100%;
+    display: grid;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-style: preserve-3d;
+    cursor: pointer;
+    /* Removed wiggle animation */
+  }
+
+  .flip-card.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-front,
+  .flip-card-back {
+    grid-area: 1 / 1;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .flip-card-front {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .card-image-wrapper {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .card-image-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .flip-card-back {
+    transform: rotateY(180deg);
+    position: relative;
+    isolation: isolate;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  .flip-card-back::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(145deg, var(--ff-grape-vivid), var(--ff-peach-soft), var(--ff-lime-soft));
+    z-index: -2;
+  }
+
+  .flip-card-back::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: linear-gradient(145deg, var(--ff-grape-deep), var(--ff-bg-secondary));
+    border-radius: calc(0.75rem - 3px);
+    z-index: -1;
+  }
+
+  /* Collectible Card Logo Background */
+  .card-back-logo {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .card-back-logo img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+  }
+
+  /* Card Back Content */
+  .card-back-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    width: 100%;
+  }
+
+  .card-back-title {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--ff-text-primary), var(--ff-resin-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+
+  .card-back-lineage {
+    font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+    color: var(--ff-text-secondary);
+    margin-bottom: 2rem;
+    font-style: italic;
+  }
+
+  .card-back-stats {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+  }
+
+  .stat-row:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ff-resin-gold);
+  }
+
+  .stat-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--ff-text-primary);
+    text-transform: capitalize;
+  }
+
+  .status-badge[data-status="current"] {
+    color: var(--ff-status-current);
+  }
+
+  .status-badge[data-status="archived"] {
+    color: var(--ff-status-archived);
+  }
+
+  .status-badge[data-status="upcoming"] {
+    color: var(--ff-status-upcoming);
+  }
+
+
+
+
+  /* Flip Hint Container */
+  .flip-hint {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none; /* Let clicks pass through to card */
+    z-index: 20;
+  }
+
+  /* The Pill */
+  .hint-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+    color: var(--ff-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0;
+    animation: fadeInHint 0.5s ease-out 1.5s forwards;
+    transition: opacity 0.3s ease;
+  }
+
+  /* The Sprite */
+  .hint-sprite {
+    position: absolute;
+    bottom: 30%; /* Position above the pill */
+    right: -10px; /* Offset to the right */
+    width: 60px;
+    height: auto;
+    object-fit: contain;
+    opacity: 0;
+    animation: spritePop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 2s forwards, spriteBounce 2s ease-in-out 2.8s infinite;
+  }
+
+  .flip-hint-back {
+    animation: none;
+    opacity: 1;
+    pointer-events: none;
+  }
+
+  .flip-hint-back .hint-content {
+    animation: none; /* No fade-in delay for back */
+    opacity: 1;
+  }
+
+  .flip-card:hover .hint-content {
+    opacity: 1;
+  }
+
+  @keyframes fadeInHint {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spritePop {
+    0% { opacity: 0; transform: scale(0) rotate(-10deg); }
+    100% { opacity: 1; transform: scale(1) rotate(10deg); }
+  }
+
+  @keyframes spriteBounce {
+    0%, 100% { transform: translateY(0) rotate(10deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+  }
+
+  /* Hover lift effect - Only on devices that support hover */
+  @media (hover: hover) {
+    .flip-card:not(.flipped):hover {
+      transform: translateY(-5px) rotateY(5deg);
+    }
+
+    .flip-card.flipped:hover {
+      transform: rotateY(180deg) translateY(-5px);
+    }
+  }
+
+
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const flipCard = document.getElementById('heroFlipCard');
+    if (flipCard) {
+      flipCard.addEventListener('click', () => {
+        flipCard.classList.toggle('flipped');
+      });
+    }
+  });
+</script>

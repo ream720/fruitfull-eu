@@ -1,0 +1,78 @@
+---
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About - Fruitfull Seeds EU" description="Meet Mr. Autogrow, the single-source hashmaker behind Fruitfull Seeds. Discover our story and commitment to unique fruit terps for solventless production.">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="space-y-8">
+
+      <!-- Hero/Intro -->
+      <div class="text-center space-y-4">
+        <h1 class="font-display text-4xl md:text-5xl text-ff-text-primary flex flex-col md:flex-row items-center justify-center gap-4">
+          <Image src="/images/fruitfull/logo/Logo1.png" alt="About Fruitfull Seeds" width={320} height={96} class="h-20 md:h-24 object-contain drop-shadow-lg filter" />
+        </h1>
+      </div>
+
+      <!-- Main Content Card -->
+      <div class="bg-ff-surface-elevated rounded-ff-xl p-8 md:p-12 border border-ff-border-subtle shadow-sm">
+        <div class="prose prose-lg prose-invert max-w-none text-ff-text-secondary">
+          <p class="leading-relaxed">
+            Fruitfull Seeds was started by <span class="text-ff-text-primary font-bold">Mr. Autogrow</span>, a single source hashmaker from Kentucky.
+            Most known for his selection of <span class="text-ff-grape-neon">Rainbow Guava #5</span>, Mr. Autogrow began breeding to find and create unique and diverse fruit terps with an emphasis on solventless production.
+          </p>
+
+          <p class="leading-relaxed mt-6">
+            Using only his own selections, Mr. Autogrow launched Fruitfull Seeds in <span class="text-ff-text-primary font-bold">February 2025</span> with the first release of his <span class="text-ff-grape-vivid font-medium">Grape Rainbow Pie Line</span>.
+          </p>
+
+          <p class="leading-relaxed mt-6">
+            At Fruitfull Seeds, we release one strain at a time and each pack comes with an exclusive promo freebie pack. Each strain is released one time only in limited amounts.
+          </p>
+
+          <div class="mt-8 p-6 bg-ff-bg-secondary rounded-lg border border-ff-border-subtle">
+            <p class="m-0 text-sm font-medium flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-ff-grape-vivid flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                More exclusive info, giveaways and sneak peaks can be found via the <a href="https://discord.gg/pKTwP2JqU6" target="_blank" rel="noopener noreferrer" class="text-ff-grape-neon hover:text-ff-grape-vivid transition-colors">Fruitfull Seeds Discord</a>.
+              </span>
+            </p>
+          </div>
+
+          <!-- Socials Section -->
+          <div class="mt-8">
+            <h2 class="text-xl font-display text-ff-text-primary mb-4">Socials</h2>
+            <div class="flex gap-4">
+              <!-- Instagram -->
+              <a
+                href="https://www.instagram.com/fruitfullseeds/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 px-4 py-2 bg-ff-bg-secondary rounded-lg border border-ff-border-subtle hover:border-ff-grape-vivid hover:bg-ff-surface-elevated transition-all duration-200 group"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-ff-text-secondary group-hover:text-pink-500 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+              </a>
+
+              <!-- X (Twitter) -->
+              <a
+                href="https://x.com/MrAutogrow"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 px-4 py-2 bg-ff-bg-secondary rounded-lg border border-ff-border-subtle hover:border-ff-grape-vivid hover:bg-ff-surface-elevated transition-all duration-200 group"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-ff-text-secondary group-hover:text-ff-text-primary transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>

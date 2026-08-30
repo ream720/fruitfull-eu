@@ -1,0 +1,4 @@
+project_id = "fruitfull-seeds-eu"
+
+[functions.send-order-emails]
+verify_jwt = false

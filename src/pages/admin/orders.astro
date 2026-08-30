@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getAdminSession } from '../../lib/admin-auth';
+
+export const prerender = false;
+Astro.response.headers.set('Cache-Control', 'no-store, private');
+const session = await getAdminSession(Astro.cookies);
+if (!session) return Astro.redirect('/admin/login');
+---
+
+<BaseLayout title="Order admin | Fruitfull Seeds EU" description="Fruitfull Seeds EU order administration.">
+  <section class="admin-shell">
+    <header class="admin-heading">
+      <div><p class="eyebrow">Fruitfull EU</p><h1>Order desk</h1><p>Signed in as {session.email}</p></div>
+      <button id="logout" class="secondary-button" type="button">Sign out</button>
+    </header>
+
+    <form id="filters" class="filters" role="search">
+      <label class="search-field"><span>Search orders</span><input name="search" type="search" placeholder="Reference, name, or email" /></label>
+      <label><span>Status</span><select name="status"><option value="">All statuses</option><option>awaiting_payment</option><option>paid</option><option>awaiting_shipment</option><option>shipped</option><option>cancelled</option><option>expired</option></select></label>
+      <label><span>Sort</span><select name="sort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
+      <button class="primary-button" type="submit">Apply</button>
+    </form>
+
+    <div id="orders-status" class="status-line" role="status" aria-live="polite">Loading orders…</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Total</th><th>Created / expiry</th><th><span class="sr-only">View</span></th></tr></thead>
+        <tbody id="orders-body"></tbody>
+      </table>
+    </div>
+    <nav class="pagination" aria-label="Order results pages">
+      <button id="previous-page" class="secondary-button" type="button">Previous</button><span id="page-label">Page 1</span><button id="next-page" class="secondary-button" type="button">Next</button>
+    </nav>
+
+    <section id="order-detail" class="detail-panel" hidden tabindex="-1">
+      <header class="detail-heading"><div><p class="eyebrow">Order detail</p><h2 id="detail-reference"></h2><p id="detail-status"></p></div><button id="close-detail" class="icon-button" type="button" aria-label="Close order detail">×</button></header>
+      <div id="detail-alert" class="detail-alert" role="status" aria-live="polite"></div>
+      <div class="detail-grid">
+        <section><h3>Customer</h3><dl id="customer-details"></dl></section>
+        <section><h3>Payment and delivery</h3><dl id="payment-details"></dl></section>
+        <section class="wide"><h3>Items</h3><div id="item-details"></div></section>
+        <section class="wide"><h3>Customer notes</h3><p id="customer-notes" class="long-copy"></p></section>
+      </div>
+      <section class="actions-panel">
+        <h3>Order actions</h3>
+        <div id="transition-actions" class="button-row"></div>
+        <form data-action-form="update_tracking" class="action-form"><h4>Tracking</h4><div class="form-grid"><label><span>Carrier</span><input name="trackingCarrier" /></label><label><span>Tracking number</span><input name="trackingNumber" /></label><label class="wide"><span>Tracking URL</span><input name="trackingUrl" type="url" /></label></div><button class="secondary-button" type="submit">Save tracking</button></form>
+        <form data-action-form="add_note" class="action-form"><label><span>Internal note</span><textarea name="note" rows="3" required></textarea></label><button class="secondary-button" type="submit">Add note</button></form>
+        <form data-action-form="cancel" class="action-form danger-zone"><label><span>Cancellation reason</span><textarea name="note" rows="2" required></textarea></label><button class="danger-button" type="submit">Cancel order</button></form>
+        <div class="button-row terminal-actions"><button class="secondary-button" data-action="retry_email" type="button">Retry current email</button><button class="danger-button" data-action="anonymize" type="button">Anonymize personal data</button></div>
+      </section>
+      <section class="history"><h3>Event history</h3><ol id="event-history"></ol><h3>Notifications</h3><ol id="notification-history"></ol></section>
+    </section>
+  </section>
+</BaseLayout>
+
+<script>
+  type Order = Record<string, any>;
+  let orders: Order[] = [];
+  let selected: Order | null = null;
+  let page = 1;
+  let total = 0;
+  const pageSize = 25;
+  const $ = <T extends Element>(selector: string) => document.querySelector<T>(selector);
+  const money = (minor: number, currency: string) => new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format((minor || 0) / 100);
+  const dateTime = (value?: string) => value ? new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  const label = (value: string) => value?.replaceAll('_', ' ') || '—';
+  const filters = $<HTMLFormElement>('#filters');
+  const statusLine = $<HTMLElement>('#orders-status');
+  const tbody = $<HTMLElement>('#orders-body');
+  const detail = $<HTMLElement>('#order-detail');
+
+  const appendDefinition = (list: HTMLElement, term: string, value: unknown) => {
+    const wrap = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = term; dd.textContent = value == null || value === '' ? '—' : String(value); wrap.append(dt, dd); list.append(wrap);
+  };
+
+  const loadOrders = async (focusId?: string) => {
+    if (statusLine) statusLine.textContent = 'Loading orders…';
+    const fields = new FormData(filters || undefined);
+    const query = new URLSearchParams({ page: String(page), search: String(fields.get('search') || ''), status: String(fields.get('status') || ''), sort: String(fields.get('sort') || 'newest') });
+    const response = await fetch(`/api/admin/orders?${query}`).catch(() => null);
+    if (response?.status === 401) { location.href = '/admin/login'; return; }
+    const result = await response?.json().catch(() => null);
+    if (!response?.ok || !result) { if (statusLine) statusLine.textContent = 'Orders are temporarily unavailable.'; return; }
+    orders = result.orders; total = result.total; renderTable();
+    if (statusLine) statusLine.textContent = `${total} order${total === 1 ? '' : 's'} found`;
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    const pageLabel = $<HTMLElement>('#page-label'); if (pageLabel) pageLabel.textContent = `Page ${page} of ${pages}`;
+    const previous = $<HTMLButtonElement>('#previous-page'), next = $<HTMLButtonElement>('#next-page'); if (previous) previous.disabled = page <= 1; if (next) next.disabled = page >= pages;
+    if (focusId) { const order = orders.find((candidate) => candidate.id === focusId); if (order) renderDetail(order); }
+  };
+
+  const renderTable = () => {
+    if (!tbody) return; tbody.replaceChildren();
+    if (!orders.length) { const row = document.createElement('tr'), cell = document.createElement('td'); cell.colSpan = 6; cell.className = 'empty-row'; cell.textContent = 'No orders match these filters.'; row.append(cell); tbody.append(row); return; }
+    orders.forEach((order) => {
+      const row = document.createElement('tr');
+      const values = [order.reference, order.customer_name || 'Anonymized', label(order.status), money(order.total_minor, order.currency)];
+      values.forEach((value, index) => { const cell = document.createElement('td'); cell.textContent = value; if (index === 2) cell.className = `order-status status-${order.status}`; row.append(cell); });
+      const dates = document.createElement('td'); dates.textContent = dateTime(order.created_at);
+      if (order.status === 'awaiting_payment') { const expiry = document.createElement('small'); const expired = new Date(order.expires_at) <= new Date(); expiry.className = expired ? 'expiry expired' : 'expiry'; expiry.textContent = `${expired ? 'Expired' : 'Expires'} ${dateTime(order.expires_at)}`; dates.append(expiry); }
+      row.append(dates);
+      const actionCell = document.createElement('td'), button = document.createElement('button'); button.type = 'button'; button.className = 'table-button'; button.textContent = 'View'; button.addEventListener('click', () => renderDetail(order)); actionCell.append(button); row.append(actionCell); tbody.append(row);
+    });
+  };
+
+  const renderDetail = (order: Order) => {
+    selected = order; if (!detail) return; detail.hidden = false;
+    const ref = $<HTMLElement>('#detail-reference'), state = $<HTMLElement>('#detail-status'); if (ref) ref.textContent = order.reference; if (state) state.textContent = label(order.status);
+    const customer = $<HTMLElement>('#customer-details'); if (customer) { customer.replaceChildren(); appendDefinition(customer, 'Name', order.customer_name); appendDefinition(customer, 'Email', order.customer_email); appendDefinition(customer, 'Phone', order.customer_phone); const address = order.shipping_address; appendDefinition(customer, 'Address', address ? [address.line1, address.line2, address.city, address.region, address.postalCode, address.countryCode].filter(Boolean).join(', ') : null); }
+    const payment = $<HTMLElement>('#payment-details'); if (payment) { payment.replaceChildren(); appendDefinition(payment, 'Method', order.payment_method); appendDefinition(payment, 'PayPal account', order.payment_name); appendDefinition(payment, 'Subtotal', money(order.subtotal_minor, order.currency)); appendDefinition(payment, 'Shipping', money(order.shipping_minor, order.currency)); appendDefinition(payment, 'Total', money(order.total_minor, order.currency)); appendDefinition(payment, 'Expires', dateTime(order.expires_at)); appendDefinition(payment, 'Carrier', order.tracking_carrier); appendDefinition(payment, 'Tracking', order.tracking_number); appendDefinition(payment, 'Tracking URL', order.tracking_url); }
+    const itemBox = $<HTMLElement>('#item-details'); if (itemBox) { itemBox.replaceChildren(); (order.order_items || []).forEach((item: Order) => { const row = document.createElement('div'); row.className = 'item-row'; const name = document.createElement('span'), amount = document.createElement('strong'); name.textContent = `${item.quantity} × ${item.name} (${item.sku})`; amount.textContent = money(item.line_total_minor, item.currency); row.append(name, amount); itemBox.append(row); }); }
+    const notes = $<HTMLElement>('#customer-notes'); if (notes) notes.textContent = order.customer_notes || 'No customer notes.';
+    const trackingForm = $<HTMLFormElement>('[data-action-form="update_tracking"]'); if (trackingForm) { ['trackingCarrier','trackingNumber','trackingUrl'].forEach((name) => { const input = trackingForm.elements.namedItem(name) as HTMLInputElement; if (input) input.value = order[name.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] || ''; }); }
+    const transitions = $<HTMLElement>('#transition-actions'); if (transitions) { transitions.replaceChildren(); const actions: Record<string, [string,string][]> = { awaiting_payment: [['mark_paid','Mark paid']], paid: [['mark_awaiting_shipment','Move to awaiting shipment']], awaiting_shipment: [['mark_shipped','Mark shipped']] }; (actions[order.status] || []).forEach(([action,text]) => { const button = document.createElement('button'); button.type='button'; button.className='primary-button'; button.dataset.action=action; button.textContent=text; transitions.append(button); }); }
+    const cancelForm = $<HTMLFormElement>('[data-action-form="cancel"]'); if (cancelForm) cancelForm.hidden = ['shipped','cancelled','expired'].includes(order.status);
+    const anon = $<HTMLButtonElement>('[data-action="anonymize"]'); if (anon) anon.disabled = !['shipped','cancelled','expired'].includes(order.status) || Boolean(order.anonymized_at);
+    renderHistory(order); detail.focus();
+  };
+
+  const renderHistory = (order: Order) => {
+    const events = $<HTMLOListElement>('#event-history'); if (events) { events.replaceChildren(); [...(order.order_events || [])].sort((a,b) => a.created_at.localeCompare(b.created_at)).forEach((event: Order) => { const row = document.createElement('li'); row.textContent = `${dateTime(event.created_at)} — ${label(event.event_type)}${event.actor_email ? ` by ${event.actor_email}` : ''}${event.note ? `: ${event.note}` : ''}`; events.append(row); }); }
+    const notifications = $<HTMLOListElement>('#notification-history'); if (notifications) { notifications.replaceChildren(); [...(order.notification_outbox || [])].sort((a,b) => b.created_at.localeCompare(a.created_at)).forEach((event: Order) => { const row = document.createElement('li'); row.textContent = `${dateTime(event.created_at)} — ${label(event.template_key)}: ${event.sent_at ? 'sent' : event.last_error ? `failed (${event.last_error})` : 'queued'}; attempts ${event.attempts}`; notifications.append(row); }); }
+  };
+
+  const mutate = async (action: string, payload: Record<string, unknown> = {}) => {
+    if (!selected) return;
+    if (action === 'anonymize' && !confirm('Permanently remove this customer’s personal data? Totals and audit history will remain.')) return;
+    if (action === 'cancel' && !confirm('Cancel this order and release its inventory?')) return;
+    const alert = $<HTMLElement>('#detail-alert'); if (alert) alert.textContent = 'Saving…';
+    const response = await fetch(`/api/admin/orders/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, version: selected.version, payload }) }).catch(() => null);
+    const result = await response?.json().catch(() => null);
+    if (!response?.ok) { if (alert) alert.textContent = response?.status === 409 ? 'Another administrator changed this order. It has been refreshed.' : `Could not update: ${label(result?.error || 'request failed')}.`; if (response?.status === 409) await loadOrders(selected.id); return; }
+    if (alert) alert.textContent = 'Order updated.'; await loadOrders(selected.id);
+  };
+
+  filters?.addEventListener('submit', (event) => { event.preventDefault(); page = 1; loadOrders(); });
+  $('#previous-page')?.addEventListener('click', () => { page = Math.max(1, page - 1); loadOrders(); }); $('#next-page')?.addEventListener('click', () => { page += 1; loadOrders(); });
+  $('#close-detail')?.addEventListener('click', () => { if (detail) detail.hidden = true; selected = null; });
+  detail?.addEventListener('click', (event) => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-action]'); if (!button?.dataset.action) return; if (button.dataset.action === 'mark_shipped') { const form = $<HTMLFormElement>('[data-action-form="update_tracking"]'); mutate(button.dataset.action, form ? Object.fromEntries(new FormData(form)) : {}); } else mutate(button.dataset.action); });
+  detail?.querySelectorAll<HTMLFormElement>('[data-action-form]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); if (!form.reportValidity()) return; const payload = Object.fromEntries(new FormData(form)); mutate(form.dataset.actionForm || '', payload); if (form.dataset.actionForm === 'add_note' || form.dataset.actionForm === 'cancel') form.reset(); }));
+  $('#logout')?.addEventListener('click', async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/admin/login'; });
+  loadOrders();
+</script>
+
+<style>
+  .admin-shell { padding-top: 3rem; }.eyebrow { color: var(--ff-grape-neon); font-size: .7rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }.admin-heading,.detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }.admin-heading h1 { margin-top: .6rem; color: var(--ff-resin-cream); font-family: 'Pokemon GB',monospace; font-size: clamp(1.5rem,4vw,2.2rem); line-height: 1.5; }.admin-heading p:last-child,.detail-heading p { margin-top: .5rem; color: var(--ff-text-muted); font-size: .8rem; }
+  .filters { display: grid; grid-template-columns: 2fr 1fr 1fr auto; align-items: end; gap: .8rem; margin-top: 2rem; padding: 1rem; border: 1px solid var(--ff-border-subtle); border-radius: 1rem; background: var(--ff-bg-secondary); }.filters label span,.action-form label span { display:block; margin-bottom:.4rem; color:var(--ff-text-secondary); font-size:.72rem; font-weight:800; }.filters input,.filters select,.action-form input,.action-form textarea { width:100%; min-height:44px; padding:.65rem; border:1px solid var(--ff-border-subtle); border-radius:.65rem; background:var(--ff-bg-primary); color:var(--ff-text-primary); }.primary-button,.secondary-button,.danger-button,.table-button,.icon-button { min-height:44px; border-radius:.65rem; padding:.65rem .9rem; font-weight:800; }.primary-button { background:var(--ff-grape-vivid); color:white; }.secondary-button,.table-button,.icon-button { border:1px solid var(--ff-border-subtle); background:var(--ff-bg-tertiary); color:var(--ff-text-primary); }.danger-button { border:1px solid #ff6b7a; background:rgba(255,73,94,.12); color:#ff9ba5; }.icon-button { width:44px; padding:0; font-size:1.5rem; }.status-line { min-height:1.5rem; margin:1rem 0; color:var(--ff-text-secondary); font-size:.8rem; }.table-wrap { overflow-x:auto; border:1px solid var(--ff-border-subtle); border-radius:1rem; } table { width:100%; min-width:760px; border-collapse:collapse; background:var(--ff-bg-secondary); } th,td { padding:.85rem; border-bottom:1px solid var(--ff-border-subtle); text-align:left; font-size:.78rem; } th { color:var(--ff-text-muted); font-size:.67rem; text-transform:uppercase; letter-spacing:.08em; } tbody tr:hover { background:var(--ff-bg-tertiary); }.order-status { text-transform:capitalize; }.status-awaiting_payment { color:var(--ff-status-upcoming); }.status-paid,.status-awaiting_shipment { color:var(--ff-cyan-neon); }.status-shipped { color:var(--ff-lime-bright); }.status-cancelled,.status-expired { color:var(--ff-text-muted); }.expiry { display:block; margin-top:.25rem; color:var(--ff-status-upcoming); font-size:.68rem; }.expiry.expired { color:#ff9ba5; }.empty-row { padding:2rem; color:var(--ff-text-muted); text-align:center; }.pagination { display:flex; align-items:center; justify-content:center; gap:1rem; margin-top:1rem; }.pagination span { font-size:.8rem; color:var(--ff-text-secondary); }.pagination button:disabled { opacity:.4; }
+  .detail-panel { margin-top:2rem; padding:clamp(1rem,4vw,2rem); border:1px solid var(--ff-grape-vivid); border-radius:1.25rem; background:var(--ff-bg-secondary); box-shadow:0 24px 60px rgba(0,0,0,.35); }.detail-panel h2 { margin-top:.5rem; color:var(--ff-resin-cream); font-size:1.35rem; font-weight:900; }.detail-alert { min-height:1.5rem; margin-top:1rem; color:var(--ff-status-upcoming); }.detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:1rem; }.detail-grid section,.actions-panel,.history { padding:1rem; border:1px solid var(--ff-border-subtle); border-radius:.85rem; background:var(--ff-bg-primary); }.detail-grid .wide { grid-column:1/-1; }.detail-grid h3,.actions-panel h3,.history h3 { margin-bottom:.8rem; color:var(--ff-resin-cream); font-weight:900; }.detail-grid dl div { display:grid; grid-template-columns:8rem 1fr; gap:.5rem; padding:.4rem 0; }.detail-grid dt { color:var(--ff-text-muted); font-size:.75rem; }.detail-grid dd { overflow-wrap:anywhere; font-size:.8rem; }.item-row { display:flex; justify-content:space-between; gap:1rem; padding:.6rem 0; border-top:1px solid var(--ff-border-subtle); font-size:.8rem; }.long-copy { white-space:pre-wrap; color:var(--ff-text-secondary); font-size:.8rem; }.actions-panel,.history { margin-top:1rem; }.button-row { display:flex; flex-wrap:wrap; gap:.7rem; }.action-form { margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--ff-border-subtle); }.action-form h4 { margin-bottom:.7rem; font-size:.8rem; font-weight:900; }.action-form button { margin-top:.7rem; }.form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }.form-grid .wide { grid-column:1/-1; }.danger-zone { border-color:rgba(255,73,94,.4); }.terminal-actions { margin-top:1.25rem; }.history ol { display:grid; gap:.5rem; margin-bottom:1.5rem; padding-left:1.2rem; color:var(--ff-text-secondary); font-size:.75rem; line-height:1.5; }
+  @media (max-width:720px) { .filters { grid-template-columns:1fr 1fr; }.search-field { grid-column:1/-1; }.detail-grid { grid-template-columns:1fr; }.detail-grid .wide { grid-column:auto; } }.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+</style>

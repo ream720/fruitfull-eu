@@ -1,0 +1,10 @@
+# Local and generated files
+node_modules
+dist
+.astro
+docs
+
+# Unused source media and legacy logo assets
+public/images/genetics/**/raw/
+public/images/fruitfull/logo/Letters_backup.png
+public/images/fruitfull/logo/Logo2_old.png

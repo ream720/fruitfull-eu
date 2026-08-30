@@ -1,0 +1,193 @@
+---
+interface Props {
+  /** ISO 8601 UTC datetime string, e.g. '2026-03-20T17:00:00Z' */
+  targetISO: string;
+  /** Label displayed above the digits */
+  label?: string;
+}
+
+const { targetISO, label = 'AVAILABLE SOON' } = Astro.props;
+---
+
+<div id="release-countdown" class="countdown-banner">
+  <div class="countdown-inner">
+    <div class="countdown-label">
+      <span class="countdown-pulse"></span>
+      <span>{label}</span>
+    </div>
+    <div class="countdown-timer" id="countdown-timer">
+      <div class="countdown-unit">
+        <span class="countdown-digits" id="cd-days">--</span>
+        <span class="countdown-unit-label">days</span>
+      </div>
+      <span class="countdown-sep">:</span>
+      <div class="countdown-unit">
+        <span class="countdown-digits" id="cd-hours">--</span>
+        <span class="countdown-unit-label">hrs</span>
+      </div>
+      <span class="countdown-sep">:</span>
+      <div class="countdown-unit">
+        <span class="countdown-digits" id="cd-mins">--</span>
+        <span class="countdown-unit-label">min</span>
+      </div>
+      <span class="countdown-sep">:</span>
+      <div class="countdown-unit">
+        <span class="countdown-digits" id="cd-secs">--</span>
+        <span class="countdown-unit-label">sec</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .countdown-banner {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(167, 109, 255, 0.35);
+    background: linear-gradient(
+      135deg,
+      rgba(167, 109, 255, 0.12) 0%,
+      rgba(255, 185, 130, 0.08) 25%,
+      rgba(167, 109, 255, 0.15) 50%,
+      rgba(255, 185, 130, 0.08) 75%,
+      rgba(167, 109, 255, 0.12) 100%
+    );
+    background-size: 200% 200%;
+    animation: glassGlow 8s ease infinite;
+    backdrop-filter: blur(12px);
+    box-shadow:
+      0 0 40px rgba(167, 109, 255, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  @keyframes glassGlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .countdown-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(0.5rem, 2vw, 1rem);
+    padding: clamp(1rem, 4vw, 1.5rem) clamp(1rem, 5vw, 2rem);
+    text-align: center;
+  }
+
+  .countdown-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ff-resin-gold, #e8b86d);
+  }
+
+  .countdown-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ff-resin-gold, #e8b86d);
+    animation: cdPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes cdPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .countdown-timer {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.1rem, 1vw, 0.5rem);
+  }
+
+  .countdown-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: clamp(2.5rem, 10vw, 4rem);
+  }
+
+  .countdown-digits {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--ff-resin-gold, #e8b86d), var(--ff-peach-soft, #ffb982));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    filter: drop-shadow(0 2px 8px rgba(232, 184, 109, 0.4));
+  }
+
+  .countdown-unit-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ff-text-secondary, #888);
+    margin-top: 0.25rem;
+  }
+
+  .countdown-sep {
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    font-weight: 800;
+    color: var(--ff-grape-vivid, #a855f7);
+    line-height: 1;
+    padding-bottom: clamp(1rem, 3.5vw, 1.5rem);
+    opacity: 0.7;
+    margin: 0 clamp(0rem, 0.5vw, 0.25rem);
+  }
+
+  #release-countdown.hidden {
+    display: none;
+  }
+</style>
+
+<script define:vars={{ targetISO }}>
+  const TARGET = new Date(targetISO).getTime();
+
+  const banner  = document.getElementById('release-countdown');
+  const daysEl  = document.getElementById('cd-days');
+  const hoursEl = document.getElementById('cd-hours');
+  const minsEl  = document.getElementById('cd-mins');
+  const secsEl  = document.getElementById('cd-secs');
+
+  function pad(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function tick() {
+    if (!banner || !daysEl || !hoursEl || !minsEl || !secsEl) return;
+
+    const remaining = TARGET - Date.now();
+
+    if (remaining <= 0) {
+      banner.classList.add('hidden');
+      return;
+    }
+
+    const totalSecs = Math.floor(remaining / 1000);
+    const days  = Math.floor(totalSecs / 86400);
+    const hours = Math.floor((totalSecs % 86400) / 3600);
+    const mins  = Math.floor((totalSecs % 3600) / 60);
+    const secs  = totalSecs % 60;
+
+    daysEl.textContent  = pad(days);
+    hoursEl.textContent = pad(hours);
+    minsEl.textContent  = pad(mins);
+    secsEl.textContent  = pad(secs);
+  }
+
+  if (banner) {
+    tick();
+    setInterval(tick, 1000);
+  }
+</script>

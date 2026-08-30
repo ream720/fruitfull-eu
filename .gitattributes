@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+# Keep media files binary so Git does not attempt text normalization.
+*.pdf binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.gif binary
+*.mp4 binary
+*.mov binary
+*.ttf binary

@@ -1,0 +1,665 @@
+---
+/**
+ * HarvestSheetCustomizer.astro
+ * Interactive Harvest Data Sheet — lets users upload a logo and download a customised PDF.
+ * Everything runs client-side; no data leaves the browser.
+ */
+---
+
+<!-- ═══════════════════ CUSTOMIZER CONTROLS (hidden during print) ═══════════════════ -->
+<div class="resource-card customizer-controls" id="customizer-controls">
+  <div class="resource-card-header">
+    <div class="resource-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" class="resource-badge-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Template
+    </div>
+    <h2 class="resource-card-title">Harvest Data Sheet</h2>
+    <p class="resource-card-description">
+      Track your wash metrics, melt yields, and rosin production data. Download the standard version below, or upload your logo to generate a customized branded version.
+    </p>
+  </div>
+
+  <div class="upload-area" id="upload-area">
+    <input type="file" id="logo-input" accept="image/*" class="sr-only" />
+    <label for="logo-input" class="upload-label" id="upload-label">
+      <svg xmlns="http://www.w3.org/2000/svg" class="upload-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+      <span class="upload-text">Click or drag to upload your logo</span>
+      <span class="upload-hint">PNG, JPG, SVG — any size</span>
+    </label>
+    <div id="upload-preview-container" class="upload-preview-container" style="display:none;">
+      <img id="upload-preview-box" src="" alt="Uploaded Logo" class="upload-preview-box" />
+      <label for="logo-input" class="upload-preview-overlay">
+        <span class="upload-preview-change-btn">Change Logo</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="resource-card-actions">
+    <a
+      href="/images/resources/harvest data sheet.pdf"
+      download="Harvest Data Sheet - Fruitfull Seeds.pdf"
+      class="btn-primary"
+      id="btn-download-original"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+      Download Original PDF
+    </a>
+    <button id="btn-remove-logo" class="btn-secondary" style="display:none;">
+      <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+      Remove Logo
+    </button>
+    <button id="btn-download-pdf" class="btn-primary" style="display:none;">
+      <svg xmlns="http://www.w3.org/2000/svg" class="btn-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      Download Custom PDF
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════ THE HARVEST DATA SHEET ═══════════════════ -->
+<div class="sheet-preview-wrapper" id="sheet-preview-wrapper">
+  <div class="sheet-scaler" id="sheet-scaler">
+  <div class="harvest-sheet" id="harvest-sheet">
+    <!-- Decorative leaf SVGs -->
+    <svg class="leaf-svg leaf-tl" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <g opacity="0.6">
+        <ellipse cx="30" cy="60" rx="50" ry="18" fill="#6b8f4e" transform="rotate(-45 30 60)" />
+        <ellipse cx="55" cy="35" rx="45" ry="14" fill="#7da35c" transform="rotate(-30 55 35)" />
+        <ellipse cx="70" cy="70" rx="40" ry="12" fill="#5a7a42" transform="rotate(-60 70 70)" />
+        <ellipse cx="20" cy="30" rx="35" ry="10" fill="#8cb86e" transform="rotate(-20 20 30)" />
+        <ellipse cx="45" cy="15" rx="30" ry="9" fill="#7da35c" transform="rotate(-40 45 15)" />
+      </g>
+    </svg>
+    <svg class="leaf-svg leaf-tr" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <g opacity="0.6">
+        <ellipse cx="170" cy="60" rx="50" ry="18" fill="#6b8f4e" transform="rotate(45 170 60)" />
+        <ellipse cx="145" cy="35" rx="45" ry="14" fill="#7da35c" transform="rotate(30 145 35)" />
+        <ellipse cx="130" cy="70" rx="40" ry="12" fill="#5a7a42" transform="rotate(60 130 70)" />
+        <ellipse cx="180" cy="30" rx="35" ry="10" fill="#8cb86e" transform="rotate(20 180 30)" />
+        <ellipse cx="155" cy="15" rx="30" ry="9" fill="#7da35c" transform="rotate(40 155 15)" />
+      </g>
+    </svg>
+    <svg class="leaf-svg leaf-bl" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <g opacity="0.5">
+        <ellipse cx="30" cy="140" rx="50" ry="18" fill="#6b8f4e" transform="rotate(45 30 140)" />
+        <ellipse cx="55" cy="165" rx="45" ry="14" fill="#7da35c" transform="rotate(30 55 165)" />
+        <ellipse cx="70" cy="130" rx="40" ry="12" fill="#5a7a42" transform="rotate(60 70 130)" />
+      </g>
+    </svg>
+    <svg class="leaf-svg leaf-br" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <g opacity="0.5">
+        <ellipse cx="170" cy="140" rx="50" ry="18" fill="#6b8f4e" transform="rotate(-45 170 140)" />
+        <ellipse cx="145" cy="165" rx="45" ry="14" fill="#7da35c" transform="rotate(-30 145 165)" />
+        <ellipse cx="130" cy="130" rx="40" ry="12" fill="#5a7a42" transform="rotate(-60 130 130)" />
+      </g>
+    </svg>
+
+    <!-- Inner content area -->
+    <div class="sheet-inner">
+      <!-- Header row -->
+      <div class="sheet-header">
+        <div class="sheet-header-left">
+          <h1 class="sheet-title">Harvest Data Sheet</h1>
+          <div class="sheet-press-date">Press Date: <span class="press-date-line"></span></div>
+        </div>
+        <div class="sheet-logo-area" id="logo-area">
+          <div class="logo-placeholder" id="logo-placeholder">
+            <span class="logo-placeholder-text">your<br/>logo<br/>here</span>
+          </div>
+          <img id="logo-preview" class="logo-preview" src="" alt="Your logo" style="display:none;" />
+        </div>
+      </div>
+
+      <!-- Data table -->
+      <table class="harvest-table">
+        <thead>
+          <tr>
+            <th>Strain</th>
+            <th>FF Weight</th>
+            <th>Melt Yield</th>
+            <th>RTH</th>
+            <th>RTR</th>
+            <th>Press %</th>
+            <th>Rosin Yield</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 12 }).map(() => (
+            <tr>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <!-- Notes / Reminders -->
+      <div class="sheet-notes">
+        <h3 class="notes-title">Notes / Reminders:</h3>
+        <ol class="notes-list">
+          <li>All calculations are in the 73-159 micron range, unless otherwise stated.</li>
+          <li>The data represents 3 washes per cycle unless marked <strong>"Phenohunt"</strong>, which then represents 2 washes per cycle.</li>
+          <li>All plants were washed within 5 days of being frozen.</li>
+          <li>Log all data <strong>as soon as</strong> you receive it.</li>
+          <li>Don't forget to <strong>HAVE FUN!</strong></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ STYLES ═══════════════════ -->
+<style>
+  /* ── Controls ── */
+  .customizer-controls {
+    margin-bottom: 2rem;
+  }
+  .resource-card {
+    background: var(--ff-bg-secondary);
+    border: 1px solid var(--ff-border-subtle);
+    border-radius: var(--ff-radius-lg);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .resource-card:hover {
+    border-color: var(--ff-grape-vivid);
+    box-shadow: 0 4px 20px rgba(122, 92, 255, 0.1);
+  }
+
+  .resource-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .resource-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ff-grape-neon);
+    background: rgba(122, 92, 255, 0.1);
+    padding: 0.25rem 0.6rem;
+    border-radius: 100px;
+    width: fit-content;
+  }
+  .resource-badge-icon {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+
+  .resource-card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ff-text-primary);
+    margin: 0;
+  }
+  .resource-card-description {
+    font-size: 0.9375rem;
+    color: var(--ff-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Upload area */
+  .upload-area {
+    margin-bottom: 1.25rem;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem 2rem;
+    border: 2px dashed var(--ff-border-subtle);
+    border-radius: var(--ff-radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  .upload-label:hover,
+  .upload-label.drag-over {
+    border-color: var(--ff-grape-vivid);
+    background: rgba(122, 92, 255, 0.05);
+  }
+  .upload-icon {
+    width: 2rem;
+    height: 2rem;
+    color: var(--ff-text-muted);
+  }
+  .upload-text {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--ff-text-secondary);
+  }
+  .upload-hint {
+    font-size: 0.75rem;
+    color: var(--ff-text-muted);
+  }
+
+  .upload-preview-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    border: 2px dashed var(--ff-border-subtle);
+    border-radius: var(--ff-radius-md);
+    background: rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    height: 140px;
+  }
+  .upload-preview-box {
+    max-height: 100px;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .upload-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+  }
+  .upload-preview-container:hover .upload-preview-overlay {
+    opacity: 1;
+  }
+  .upload-preview-change-btn {
+    background: var(--ff-bg-secondary);
+    color: var(--ff-text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--ff-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid var(--ff-border-subtle);
+  }
+
+  /* Buttons */
+  .resource-card-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .btn-primary,
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: var(--ff-radius-sm);
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+  }
+  .btn-primary {
+    background: var(--ff-grape-vivid);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--ff-grape-neon);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(122, 92, 255, 0.35);
+  }
+  .btn-primary:disabled {
+    background: var(--ff-border-subtle);
+    color: var(--ff-text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .btn-secondary {
+    background: var(--ff-bg-tertiary);
+    color: var(--ff-text-secondary);
+    border: 1px solid var(--ff-border-subtle);
+  }
+  .btn-secondary:hover {
+    border-color: var(--ff-grape-vivid);
+    color: var(--ff-text-primary);
+  }
+  .btn-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* ── Sheet Preview ── */
+  .sheet-preview-wrapper {
+    overflow: hidden;
+    padding-bottom: 1rem;
+  }
+  .sheet-scaler {
+    transform-origin: top left;
+    /* width set dynamically by JS */
+  }
+  .harvest-sheet {
+    position: relative;
+    width: 1050px;
+    min-height: 740px;
+    background: #5a6e4e;
+    border-radius: 8px;
+    padding: 24px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #2d2d2d;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  /* Leaf SVG decorations */
+  .leaf-svg {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .leaf-tl { top: -10px; left: -10px; }
+  .leaf-tr { top: -10px; right: -10px; }
+  .leaf-bl { bottom: -10px; left: -10px; }
+  .leaf-br { bottom: -10px; right: -10px; }
+
+  /* Inner card */
+  .sheet-inner {
+    position: relative;
+    background: #faf6ec;
+    border-radius: 6px;
+    padding: 24px 36px;
+    z-index: 2;
+    min-height: 680px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .sheet-header-left {
+    flex: 1;
+  }
+  .sheet-title {
+    font-family: 'Georgia', serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #3a3a3a;
+    margin: 0 0 12px;
+    font-style: italic;
+  }
+  .sheet-press-date {
+    font-size: 0.95rem;
+    color: #555;
+  }
+  .press-date-line {
+    display: inline-block;
+    width: 160px;
+    border-bottom: 1.5px solid #999;
+    vertical-align: bottom;
+    margin-left: 4px;
+  }
+
+  /* Logo area */
+  .sheet-logo-area {
+    flex-shrink: 0;
+    width: 110px;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-placeholder {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #e8c4a0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .logo-placeholder-text {
+    font-family: 'Arial', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    text-transform: lowercase;
+  }
+  .logo-preview {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+  }
+
+  /* Data table */
+  .harvest-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    flex-grow: 1;
+  }
+  .harvest-table thead th {
+    background: #d9a96e;
+    color: #2d2d2d;
+    font-family: 'Arial', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 10px;
+    text-align: center;
+    border: 1.5px solid #b5894d;
+  }
+  .harvest-table tbody td {
+    border: 1px solid #c9b99a;
+    padding: 6px 8px;
+    height: 28px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .harvest-table tbody tr:nth-child(even) td {
+    background: rgba(0,0,0,0.02);
+  }
+
+  /* Notes */
+  .sheet-notes {
+    margin-top: auto;
+    padding-top: 16px;
+  }
+  .notes-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #c0392b;
+    margin: 0 0 6px;
+    text-decoration: underline;
+    font-family: 'Arial', sans-serif;
+  }
+  .notes-list {
+    font-size: 0.8rem;
+    color: #555;
+    padding-left: 20px;
+    margin: 0;
+    line-height: 1.6;
+    font-family: 'Arial', sans-serif;
+  }
+  .notes-list strong {
+    color: #333;
+  }
+
+</style>
+
+<!-- ═══════════════════ SCRIPT ═══════════════════ -->
+<script>
+  import html2canvas from 'html2canvas';
+  import { jsPDF } from 'jspdf';
+
+  function initCustomizer() {
+    const input = document.getElementById('logo-input') as HTMLInputElement;
+    const uploadLabel = document.getElementById('upload-label') as HTMLLabelElement;
+    const logoPlaceholder = document.getElementById('logo-placeholder') as HTMLElement;
+    const logoPreview = document.getElementById('logo-preview') as HTMLImageElement;
+    const btnRemove = document.getElementById('btn-remove-logo') as HTMLButtonElement;
+    const btnDownload = document.getElementById('btn-download-pdf') as HTMLButtonElement;
+    const btnDownloadOriginal = document.getElementById('btn-download-original') as HTMLAnchorElement;
+    const uploadArea = document.getElementById('upload-area') as HTMLElement;
+    const sheetScaler = document.getElementById('sheet-scaler') as HTMLElement;
+    const sheetWrapper = document.getElementById('sheet-preview-wrapper') as HTMLElement;
+    const sheet = document.getElementById('harvest-sheet') as HTMLElement;
+
+    if (!input || !uploadLabel || !logoPlaceholder || !logoPreview || !btnRemove || !btnDownload || !btnDownloadOriginal || !uploadArea || !sheetScaler || !sheetWrapper || !sheet) return;
+
+    // ── Responsive scaling ──
+    function scaleSheet() {
+      const wrapperWidth = sheetWrapper.clientWidth;
+      const sheetWidth = 1050; // fixed design width
+      const scale = Math.min(1, wrapperWidth / sheetWidth);
+      sheetScaler.style.transform = `scale(${scale})`;
+      // Set wrapper height to match scaled content
+      sheetWrapper.style.height = `${sheet.offsetHeight * scale}px`;
+    }
+    scaleSheet();
+    window.addEventListener('resize', scaleSheet);
+
+    // ── Logo upload ──
+    function showLogo(file: File) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        logoPreview.src = result;
+        logoPreview.style.display = 'block';
+        logoPlaceholder.style.display = 'none';
+        btnRemove.style.display = 'inline-flex';
+        btnDownload.style.display = 'inline-flex';
+        btnDownloadOriginal.style.display = 'none';
+
+        const uploadPreviewBox = document.getElementById('upload-preview-box') as HTMLImageElement;
+        const uploadPreviewContainer = document.getElementById('upload-preview-container');
+        if (uploadPreviewBox) uploadPreviewBox.src = result;
+        if (uploadPreviewContainer) uploadPreviewContainer.style.display = 'flex';
+        if (uploadLabel) uploadLabel.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // File input change
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (file) showLogo(file);
+    });
+
+    // Drag & drop
+    uploadLabel.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadLabel.classList.add('drag-over');
+    });
+    uploadLabel.addEventListener('dragleave', () => {
+      uploadLabel.classList.remove('drag-over');
+    });
+    uploadLabel.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadLabel.classList.remove('drag-over');
+      const file = e.dataTransfer?.files[0];
+      if (file && file.type.startsWith('image/')) {
+        showLogo(file);
+      }
+    });
+
+    // Remove logo
+    btnRemove.addEventListener('click', () => {
+      logoPreview.src = '';
+      logoPreview.style.display = 'none';
+      logoPlaceholder.style.display = 'flex';
+      btnRemove.style.display = 'none';
+      input.value = '';
+      btnDownload.style.display = 'none';
+      btnDownloadOriginal.style.display = 'inline-flex';
+
+      const uploadPreviewContainer = document.getElementById('upload-preview-container');
+      if (uploadPreviewContainer) uploadPreviewContainer.style.display = 'none';
+      if (uploadLabel) uploadLabel.style.display = 'flex';
+    });
+
+    // Download as PDF — generate client-side PDF
+    btnDownload.addEventListener('click', async () => {
+      const originalText = btnDownload.innerHTML;
+      btnDownload.innerHTML = 'Generating PDF...';
+      btnDownload.style.opacity = '0.7';
+      btnDownload.style.pointerEvents = 'none';
+
+      try {
+        // Temporarily remove scaling so html2canvas captures at full resolution
+        const originalTransform = sheetScaler.style.transform;
+        sheetScaler.style.transform = 'none';
+
+        const canvas = await html2canvas(sheet, {
+          scale: 2, // 2x resolution for better print quality
+          useCORS: true,
+          backgroundColor: '#5a6e4e' // The sheet's background color
+        });
+
+        // Restore scale
+        sheetScaler.style.transform = originalTransform;
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+        // Create PDF matching the exact pixel dimensions of the sheet
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'px',
+          format: [sheet.offsetWidth, sheet.offsetHeight]
+        });
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, sheet.offsetWidth, sheet.offsetHeight);
+        pdf.save('Harvest Data Sheet - Custom.pdf');
+
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('There was an error generating your PDF. Please try again.');
+      } finally {
+        btnDownload.innerHTML = originalText;
+        btnDownload.style.opacity = '1';
+        btnDownload.style.pointerEvents = 'auto';
+      }
+    });
+  }
+
+  initCustomizer();
+  document.addEventListener('astro:after-swap', initCustomizer);
+</script>

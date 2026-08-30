@@ -1,0 +1,29 @@
+{
+  "name": "fruitfull-seeds-eu",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "node --test tests/*.test.mjs",
+    "check": "tsc --noEmit",
+    "drops:check": "node scripts/sync-drops.mjs --check",
+    "drops:sync": "node scripts/sync-drops.mjs"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.13",
+    "@astrojs/sitemap": "^3.7.0",
+    "@astrojs/vercel": "^9.0.4",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.18",
+    "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^1.3.1",
+    "astro": "^5.16.9",
+    "astro-robots-txt": "^1.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "tailwindcss": "^4.1.18"
+  }
+}

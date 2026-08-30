@@ -1,0 +1,38 @@
+---
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HarvestSheetCustomizer from '../components/HarvestSheetCustomizer.astro';
+---
+
+<BaseLayout
+  title="Resources - Fruitfull Seeds EU"
+  description="Free downloadable resources for hashmakers. Customize and download our Harvest Data Sheet with your own logo."
+>
+  <div class="max-w-5xl mx-auto px-4 py-8">
+    <div class="space-y-8">
+
+      <!-- Page Header -->
+      <div class="text-center space-y-3">
+        <h1 class="font-display text-4xl md:text-5xl text-ff-text-primary font-bold tracking-tight">
+          Resources
+        </h1>
+        <p class="text-ff-text-secondary text-lg max-w-2xl mx-auto">
+          Free tools and templates for hashmakers. Download, customise, and make them your own.
+        </p>
+      </div>
+
+      <div class="resources-container">
+        <HarvestSheetCustomizer />
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .resources-container {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+</style>

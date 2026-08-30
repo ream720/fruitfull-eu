@@ -1,0 +1,232 @@
+---
+import { Image } from 'astro:assets';
+import '../styles/global.css';
+import Analytics from '@vercel/analytics/astro';
+import SpeedInsights from '@vercel/speed-insights/astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  showBackLink?: boolean;
+  backLinkText?: string;
+  backLinkHref?: string;
+}
+
+const {
+  title,
+  description = "Fruitfull Seeds EU - Premium Genetics",
+  showBackLink = false,
+  backLinkText = "Back",
+  backLinkHref = "/"
+} = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin);
+const originalSiteUrl = new URL(Astro.url.pathname, 'https://fruitfullseeds.com');
+const currentPath = Astro.url.pathname;
+const navItems = [
+  { href: '/drops', label: 'Drops', match: '/drops' },
+  { href: '/genetics', label: 'EU Genetics', match: '/genetics' },
+  { href: '/about', label: 'About', match: '/about' },
+  { href: '/#newsletter', label: 'Newsletter', match: '/newsletter' },
+  { href: '/resources', label: 'Resources', match: '/resources' },
+];
+---
+
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="en-GB" href={canonicalUrl} />
+    <link rel="alternate" hreflang="en-US" href={originalSiteUrl} />
+    <link rel="alternate" hreflang="x-default" href={originalSiteUrl} />
+    <link rel="icon" type="image/png" href="/images/fruitfull/logo/Logo2_new.png" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-ff-bg-primary text-ff-text-primary">
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <div class="container mx-auto px-4 max-w-4xl min-h-screen flex flex-col">
+      <header class="py-3">
+        <nav class="flex items-center justify-between" aria-label="Main navigation">
+          <div class="flex items-center gap-4 md:gap-6">
+            <a href="/" class="block transition-transform hover:scale-105 shrink-0" aria-label="Fruitfull Seeds EU home">
+              <Image src="/images/fruitfull/logo/Logo2_new.png" alt="Fruitfull Seeds" width={64} height={64} class="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain" loading="eager" />
+            </a>
+            <div class="hidden md:flex items-center gap-5 text-sm whitespace-nowrap">
+              {navItems.map((item) => {
+                const active = item.match === '/newsletter' ? false : currentPath.startsWith(item.match);
+                return (
+                  <a href={item.href} aria-current={active ? 'page' : undefined} class:list={[
+                    'nav-link', active && 'nav-link-active'
+                  ]}>{item.label}</a>
+                );
+              })}
+            </div>
+          </div>
+          <button id="open-main-menu" class="menu-button md:hidden" type="button" aria-label="Open navigation menu" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        </nav>
+        {showBackLink && (
+          <div class="mt-8 mb-2">
+            <a
+              href={backLinkHref}
+              class="inline-flex items-center gap-2 text-ff-text-secondary hover:text-ff-grape-vivid transition-colors duration-300 group"
+            >
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span class="text-sm font-medium tracking-wide">{backLinkText}</span>
+            </a>
+          </div>
+        )}
+      </header>
+
+      <main id="main-content" class="pb-24 flex-grow" tabindex="-1">
+        <slot />
+      </main>
+
+      <footer class="w-full py-6 mt-12 text-center border-t border-white/5">
+        <div class="text-sm font-medium text-ff-text-secondary">
+          <button id="open-site-info" class="hover:text-ff-text-primary transition-colors duration-300 bg-transparent border-none cursor-pointer">
+            Site Info
+          </button>
+        </div>
+      </footer>
+    </div>
+
+    <dialog id="main-menu" class="mobile-menu">
+      <div class="mobile-menu-panel">
+        <div class="flex items-center justify-between mb-6">
+          <p class="font-pokemon text-sm text-ff-resin-cream">Explore</p>
+          <button id="close-main-menu" class="menu-button" type="button" aria-label="Close navigation menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <nav class="grid gap-2" aria-label="Mobile navigation">
+          {navItems.map((item) => {
+            const active = item.match === '/newsletter' ? false : currentPath.startsWith(item.match);
+            return (
+              <a href={item.href} aria-current={active ? 'page' : undefined} class:list={[
+                'mobile-nav-link', active && 'mobile-nav-link-active'
+              ]}>
+                <span>{item.label}</span>{active && <span aria-hidden="true">●</span>}
+              </a>
+            );
+          })}
+        </nav>
+      </div>
+    </dialog>
+
+    <dialog id="site-info-modal" class="bg-transparent p-0 backdrop:bg-black/80 backdrop:backdrop-blur-sm m-auto open:animate-fade-in focus:outline-none">
+      <div class="bg-ff-bg-secondary p-8 rounded-ff-xl border border-ff-border-subtle shadow-2xl w-[calc(100%-2rem)] max-w-sm mx-auto relative overflow-hidden text-center">
+        <!-- Close button -->
+        <button id="close-site-info" class="absolute top-4 right-4 text-ff-text-muted hover:text-ff-text-primary transition-colors bg-transparent border-none cursor-pointer p-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="space-y-8 mt-2">
+           <div class="space-y-2">
+              <h2 class="text-xs font-bold uppercase tracking-[0.25em] text-ff-text-muted">Designed & Developed by</h2>
+           </div>
+
+           <a href="https://discord.com/users/353663224488525825" target="_blank" rel="noopener noreferrer" class="group relative inline-flex flex-col items-center gap-4 transition-transform duration-300 hover:-translate-y-1">
+             <div class="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center shadow-lg group-hover:shadow-[0_0_25px_rgba(255,0,255,0.6)] transition-all duration-300 border-2 border-transparent group-hover:border-[#ff00ff]/50">
+                <img src="/images/fruitfull/logo/parzival_avatar.jpg" alt="Parzival" class="w-full h-full object-cover" />
+             </div>
+             <div class="text-center">
+               <span class="block text-xl font-bold text-ff-text-primary tracking-wide group-hover:text-ff-grape-neon transition-colors">Parzival 6⭐</span>
+             </div>
+           </a>
+
+           <div class="pt-6 border-t border-ff-border-subtle">
+             <p class="text-[10px] text-ff-text-muted/70 uppercase tracking-widest font-medium">&copy; {new Date().getFullYear()} Fruitfull Seeds EU</p>
+           </div>
+        </div>
+      </div>
+    </dialog>
+
+    <script>
+      const modal = document.getElementById('site-info-modal') as HTMLDialogElement;
+      const openBtn = document.getElementById('open-site-info');
+      const closeBtn = document.getElementById('close-site-info');
+      const mainMenu = document.getElementById('main-menu') as HTMLDialogElement;
+      const openMainMenu = document.getElementById('open-main-menu');
+      const closeMainMenu = document.getElementById('close-main-menu');
+
+      openMainMenu?.addEventListener('click', () => mainMenu?.showModal());
+      closeMainMenu?.addEventListener('click', () => mainMenu?.close());
+      mainMenu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => mainMenu.close()));
+      mainMenu?.addEventListener('click', (event) => {
+        if (event.target === mainMenu) mainMenu.close();
+      });
+
+      if (modal && openBtn && closeBtn) {
+        openBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          modal.showModal();
+        });
+
+        closeBtn.addEventListener('click', () => {
+          modal.close();
+        });
+
+        modal.addEventListener('click', (e) => {
+          const dialogDimensions = modal.getBoundingClientRect();
+          if (
+            e.clientX < dialogDimensions.left ||
+            e.clientX > dialogDimensions.right ||
+            e.clientY < dialogDimensions.top ||
+            e.clientY > dialogDimensions.bottom
+          ) {
+            modal.close();
+          }
+        });
+      }
+    </script>
+
+    <style>
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+      }
+      dialog[open] {
+        animation: fade-in 0.2s ease-out;
+      }
+      @keyframes fade-in {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .skip-link {
+        position: fixed; z-index: 100; left: 1rem; top: 1rem; transform: translateY(-200%);
+        background: var(--ff-lime-bright); color: #0b0b10; padding: .75rem 1rem; border-radius: .75rem;
+      }
+      .skip-link:focus { transform: translateY(0); }
+      .nav-link { color: var(--ff-text-secondary); padding: .75rem 0; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; }
+      .nav-link:hover, .nav-link:focus-visible { color: var(--ff-text-primary); }
+      .nav-link-active { color: var(--ff-resin-cream); border-bottom-color: var(--ff-grape-neon); }
+      .menu-button { width: 44px; height: 44px; display: inline-grid; place-items: center; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-secondary); color: var(--ff-text-primary); }
+      .menu-button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+      .mobile-menu { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(11,11,16,.96); color: var(--ff-text-primary); }
+      .mobile-menu::backdrop { background: rgba(0,0,0,.76); }
+      .mobile-menu-panel { padding: 1rem; max-width: 32rem; margin: 0 auto; }
+      .mobile-nav-link { min-height: 52px; display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; color: var(--ff-text-secondary); border: 1px solid transparent; border-radius: .75rem; font-weight: 700; }
+      .mobile-nav-link-active { color: var(--ff-text-primary); background: var(--ff-bg-tertiary); border-color: var(--ff-grape-vivid); }
+      :focus-visible { outline: 3px solid var(--ff-cyan-neon); outline-offset: 3px; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+      }
+      @media (min-width: 768px) { #open-main-menu { display: none; } }
+    </style>
+    <Analytics />
+    <SpeedInsights />
+  </body>
+</html>

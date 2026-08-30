@@ -1,0 +1,101 @@
+---
+interface Props {
+  /** ISO 8601 UTC datetime string, e.g. '2026-03-20T17:00:00Z' */
+  targetISO: string;
+  /** Text shown before the timer */
+  label?: string;
+  /** Unique ID suffix – needed if multiple pills on same page */
+  id?: string;
+}
+
+const {
+  targetISO,
+  label = 'Drops in',
+  id = 'cd-pill',
+} = Astro.props;
+---
+
+<span class="countdown-pill" id={id}>
+  <span class="cd-pulse"></span>
+  <span class="cd-label">{label}</span>
+  <span class="cd-time" id={`${id}-time`}>--:--:--:--</span>
+</span>
+
+<style>
+  .countdown-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    background: black;
+    border: 2px solid var(--ff-grape-vivid, #a855f7);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    box-shadow: 0 0 12px var(--ff-grape-vivid, #a855f7);
+    white-space: nowrap;
+  }
+
+  .countdown-pill.cd-hidden {
+    display: none;
+  }
+
+  .cd-pulse {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ff-grape-neon, #c084fc);
+    animation: cdPillPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes cdPillPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .cd-label {
+    color: var(--ff-grape-neon, #c084fc);
+  }
+
+  .cd-time {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+</style>
+
+<script define:vars={{ targetISO, id }}>
+  const TARGET = new Date(targetISO).getTime();
+  const pill = document.getElementById(id);
+  const timeEl = document.getElementById(`${id}-time`);
+
+  function pad(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function tick() {
+    if (!pill || !timeEl) return;
+    const remaining = TARGET - Date.now();
+
+    if (remaining <= 0) {
+      pill.classList.add('cd-hidden');
+      return;
+    }
+
+    const totalSecs = Math.floor(remaining / 1000);
+    const days  = Math.floor(totalSecs / 86400);
+    const hours = Math.floor((totalSecs % 86400) / 3600);
+    const mins  = Math.floor((totalSecs % 3600) / 60);
+    const secs  = totalSecs % 60;
+
+    timeEl.textContent = `${pad(days)}d ${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`;
+  }
+
+  if (pill) {
+    tick();
+    setInterval(tick, 1000);
+  }
+</script>

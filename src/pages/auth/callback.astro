@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { exchangeAdminCode, getAdminSession } from '../../lib/admin-auth';
+
+export const prerender = false;
+Astro.response.headers.set('Cache-Control', 'no-store');
+const code = Astro.url.searchParams.get('code');
+let message = 'This sign-in link is invalid or has expired.';
+if (code) {
+  try {
+    await exchangeAdminCode(code, Astro.cookies);
+    if (await getAdminSession(Astro.cookies)) return Astro.redirect('/admin/orders');
+    message = 'This email is not authorised for order administration.';
+  } catch {
+    message = 'This sign-in link is invalid or has expired.';
+  }
+}
+---
+
+<BaseLayout title="Sign-in result | Fruitfull Seeds EU">
+  <section class="mx-auto max-w-md pt-16 text-center">
+    <h1 class="font-pokemon text-xl leading-relaxed text-ff-resin-cream">Couldn’t sign in</h1>
+    <p class="mt-5 text-ff-text-secondary">{message}</p>
+    <a href="/admin/login" class="mt-8 inline-flex min-h-12 items-center rounded-ff-md bg-ff-grape-vivid px-5 font-bold text-white">Request a new link</a>
+  </section>
+</BaseLayout>

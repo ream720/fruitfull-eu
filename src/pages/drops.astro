@@ -1,0 +1,263 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { EUROPE_SHIPPING_COUNTRIES } from '../lib/countries';
+import { formatMoney, getDropStatus, statusLabel, type PublicDrop } from '../lib/drops';
+import { getPublicDrops } from '../lib/supabase-rest';
+
+export const prerender = false;
+
+let drops: PublicDrop[] = [];
+let catalogUnavailable = false;
+try { drops = await getPublicDrops(); } catch { catalogUnavailable = true; }
+
+const previewMode = import.meta.env.DEV && Astro.url.searchParams.get('preview') === '1';
+if (previewMode) {
+  const entries = await getCollection('drops');
+  drops = entries.map(({ data }) => ({
+    id: data.id, slug: data.slug, title: data.title, description: data.description,
+    opens_at: data.opensAt, closes_at: data.closesAt || null,
+    currency: data.currency, shipping_amount_minor: data.shippingAmountMinor,
+    payment_methods: data.paymentMethods, active: true,
+    drop_items: data.items.map((item) => ({
+      id: item.id, drop_id: data.id, sku: item.sku, name: item.name,
+      item_type: item.type, artist: item.artist, image_path: item.image,
+      description: item.description, amount_minor: item.amountMinor,
+      stock_total: item.stockTotal, stock_available: item.stockTotal,
+      max_per_order: item.maxPerOrder, active: true,
+    })),
+  }));
+}
+
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+const visibleDrops = drops.filter((drop) => drop.active);
+---
+
+<BaseLayout title="Drops | Fruitfull Seeds EU" description="Reserve limited Fruitfull Seeds EU artist drops.">
+  <section class="drop-hero">
+    <p class="eyebrow">Limited artist releases</p>
+    <h1>Fruitfull Drops</h1>
+    <p>Small batches, released when each artist’s work is ready. Choose from one drop at a time and complete payment within 48 hours to hold your reservation.</p>
+    {previewMode && <p class="preview-note">Local preview — placeholder inventory cannot be reserved.</p>}
+  </section>
+
+  {catalogUnavailable && (
+    <div class="notice" role="status">Drop availability is temporarily unavailable. Please check back shortly.</div>
+  )}
+
+  {visibleDrops.length === 0 ? (
+    <section class="empty-state">
+      <span aria-hidden="true" class="empty-icon">✦</span>
+      <h2>The next drop is taking shape</h2>
+      <p>There are no reservable items right now. Join the newsletter to hear when the next artist batch lands.</p>
+      <a class="primary-link" href="/#newsletter">Join the newsletter</a>
+    </section>
+  ) : (
+    <div class="drop-list">
+      {visibleDrops.map((drop) => {
+        const status = getDropStatus(drop);
+        const availableItems = drop.drop_items.filter((item) => item.active);
+        return (
+          <article class="drop-card" data-drop-id={drop.id} data-currency={drop.currency} data-shipping={drop.shipping_amount_minor}>
+            <header class="drop-header">
+              <div>
+                <span class:list={['status-pill', `status-${status}`]}>{statusLabel[status]}</span>
+                <h2>{drop.title}</h2>
+                <p>{drop.description}</p>
+              </div>
+              <dl class="drop-meta">
+                <div><dt>Opens</dt><dd>{new Date(drop.opens_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>
+                {drop.closes_at && <div><dt>Closes</dt><dd>{new Date(drop.closes_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>}
+                <div><dt>Shipping</dt><dd>{formatMoney(drop.shipping_amount_minor, drop.currency)}</dd></div>
+              </dl>
+            </header>
+
+            <div class="item-grid">
+              {availableItems.map((item) => (
+                <section class:list={['item-card', item.stock_available < 1 && 'item-sold-out']} data-item-id={item.id} data-price={item.amount_minor} data-stock={item.stock_available} data-max={item.max_per_order}>
+                  <div class="item-art"><img src={item.image_path} alt={`${item.name} artwork`} loading="lazy" /></div>
+                  <div class="item-copy">
+                    <p class="item-type">{item.item_type}</p>
+                    <h3>{item.name}</h3>
+                    <p class="artist">Artwork by {item.artist}</p>
+                    <p>{item.description}</p>
+                    <div class="item-bottom">
+                      <div><strong>{formatMoney(item.amount_minor, drop.currency)}</strong><small>{item.stock_available > 0 ? `${item.stock_available} remaining` : 'Sold out'}</small></div>
+                      {status === 'active' && item.stock_available > 0 && (
+                        <div class="quantity" aria-label={`Quantity for ${item.name}`}>
+                          <button type="button" data-quantity-change="-1" aria-label={`Decrease ${item.name} quantity`}>−</button>
+                          <input aria-label={`${item.name} quantity`} inputmode="numeric" type="number" min="0" max={Math.min(item.max_per_order, item.stock_available)} value="0" data-quantity />
+                          <button type="button" data-quantity-change="1" aria-label={`Increase ${item.name} quantity`}>+</button>
+                        </div>
+                      )}
+                    </div>
+                    {item.stock_available > 0 && <p class="limit">Maximum {item.max_per_order} per reservation</p>}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            {status === 'active' && (
+              <form class="reservation-form" novalidate>
+                <div class="form-heading">
+                  <div><p class="eyebrow">Your reservation</p><h3>Delivery and payment details</h3></div>
+                  <div class="order-total" aria-live="polite"><span>Total</span><strong data-total>{formatMoney(drop.shipping_amount_minor, drop.currency)}</strong><small>Includes {formatMoney(drop.shipping_amount_minor, drop.currency)} shipping</small></div>
+                </div>
+                <p class="basket-hint" data-basket-hint>Select at least one item above.</p>
+
+                <fieldset><legend>Contact</legend><div class="form-grid">
+                  <label class="wide"><span>Full name</span><input name="name" autocomplete="name" required maxlength="120" /></label>
+                  <label><span>Email</span><input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
+                  <label><span>Phone <small>international format</small></span><input name="phone" type="tel" autocomplete="tel" placeholder="+44 20 1234 5678" required maxlength="32" /></label>
+                </div></fieldset>
+
+                <fieldset><legend>Payment</legend><div class="form-grid">
+                  <div class="payment-method" aria-label="Payment method: PayPal"><span>Payment method</span><strong>PayPal request</strong><p>After reserving, we’ll send a payment request to your PayPal account.</p></div>
+                  <input type="hidden" name="paymentMethod" value="PayPal" />
+                  <label><span>PayPal email or username <small>(required)</small></span><input name="paymentName" inputmode="email" autocapitalize="none" spellcheck="false" aria-describedby={`paypal-help-${drop.id}`} required minlength="2" maxlength="120" /><small id={`paypal-help-${drop.id}`} class="field-help">Enter the exact email or @username connected to your PayPal account.</small></label>
+                </div></fieldset>
+
+                <fieldset><legend>Shipping</legend><div class="form-grid">
+                  <label class="wide"><span>Address line 1</span><input name="line1" autocomplete="address-line1" required maxlength="160" /></label>
+                  <label class="wide"><span>Address line 2 <small>optional</small></span><input name="line2" autocomplete="address-line2" maxlength="160" /></label>
+                  <label><span>City or town</span><input name="city" autocomplete="address-level2" required maxlength="100" /></label>
+                  <label><span>Region <small>optional</small></span><input name="region" autocomplete="address-level1" maxlength="100" /></label>
+                  <label><span>Postcode</span><input name="postalCode" autocomplete="postal-code" required maxlength="24" /></label>
+                  <label><span>Country</span><select name="countryCode" autocomplete="country" required><option value="">Choose a country</option>{EUROPE_SHIPPING_COUNTRIES.map(([code, name]) => <option value={code}>{name}</option>)}</select></label>
+                </div></fieldset>
+
+                <fieldset><legend>Anything else?</legend><label><span>Notes <small>optional</small></span><textarea name="notes" rows="4" maxlength="2000"></textarea></label></fieldset>
+                <div class="agreements">
+                  <label><input name="privacyAccepted" type="checkbox" required /><span>I acknowledge that my details will be used to process and deliver this reservation.</span></label>
+                  <label><input name="reservationTermsAccepted" type="checkbox" required /><span>I understand payment must be completed before the 48-hour reservation expiry.</span></label>
+                </div>
+                <label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off" /></label>
+                {turnstileSiteKey && <div class="cf-turnstile" data-sitekey={turnstileSiteKey}></div>}
+                <button class="reserve-button" type="submit" disabled={previewMode || !turnstileSiteKey}>{previewMode ? 'Preview only' : turnstileSiteKey ? 'Reserve selected items' : 'Reservations unavailable'}</button>
+                <p class="form-status" data-form-status aria-live="polite"></p>
+              </form>
+            )}
+            {status !== 'active' && <div class="inactive-message">{status === 'upcoming' ? 'Reservations will open at the time shown above.' : status === 'sold_out' ? 'Every item in this drop has been reserved.' : 'This reservation window has closed.'}</div>}
+            <section class="reservation-success" hidden data-success aria-live="polite">
+              <p class="eyebrow">Reservation held</p><h3>Keep this reference handy</h3>
+              <dl><div><dt>Reference</dt><dd data-success-reference></dd></div><div><dt>Total</dt><dd data-success-total></dd></div><div><dt>Payment deadline</dt><dd data-success-expiry></dd></div></dl>
+              <div class="payment-instructions"><strong>Payment instructions</strong><p data-success-instructions></p></div>
+              <p>We’ve also queued these details for delivery to your email.</p>
+            </section>
+          </article>
+        );
+      })}
+    </div>
+  )}
+</BaseLayout>
+
+{turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+
+<script>
+  const money = (minor: number, currency: string) => new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(minor / 100);
+  document.querySelectorAll<HTMLElement>('.drop-card').forEach((drop) => {
+    const form = drop.querySelector<HTMLFormElement>('.reservation-form');
+    if (!form) return;
+    const currency = drop.dataset.currency || 'USD';
+    const shipping = Number(drop.dataset.shipping || 0);
+    const items = Array.from(drop.querySelectorAll<HTMLElement>('[data-item-id]'));
+    const selectedItems = () => items.map((item) => ({
+      itemId: item.dataset.itemId || '', quantity: Number(item.querySelector<HTMLInputElement>('[data-quantity]')?.value || 0),
+      price: Number(item.dataset.price || 0),
+    })).filter((item) => item.quantity > 0);
+    const idempotencyKey = crypto.randomUUID();
+    const updateTotal = () => {
+      const selected = selectedItems();
+      const subtotal = selected.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const total = form.querySelector<HTMLElement>('[data-total]');
+      const hint = form.querySelector<HTMLElement>('[data-basket-hint]');
+      if (total) total.textContent = money(subtotal + shipping, currency);
+      if (hint) hint.textContent = selected.length ? `${selected.reduce((sum, item) => sum + item.quantity, 0)} item(s) selected.` : 'Select at least one item above.';
+    };
+    items.forEach((item) => {
+      const input = item.querySelector<HTMLInputElement>('[data-quantity]');
+      item.querySelectorAll<HTMLButtonElement>('[data-quantity-change]').forEach((button) => button.addEventListener('click', () => {
+        if (!input) return;
+        const next = Number(input.value || 0) + Number(button.dataset.quantityChange || 0);
+        input.value = String(Math.max(0, Math.min(Number(input.max), next)));
+        updateTotal();
+      }));
+      input?.addEventListener('change', () => {
+        input.value = String(Math.max(0, Math.min(Number(input.max), Number(input.value || 0)))); updateTotal();
+      });
+    });
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const status = form.querySelector<HTMLElement>('[data-form-status]');
+      const firstInvalid = form.querySelector<HTMLElement>(':invalid');
+      if (firstInvalid) { firstInvalid.focus(); form.reportValidity(); return; }
+      const chosen = selectedItems().map(({ itemId, quantity }) => ({ itemId, quantity }));
+      if (!chosen.length) { if (status) status.textContent = 'Choose at least one item.'; items[0]?.scrollIntoView({ behavior: 'smooth' }); return; }
+      const fields = new FormData(form);
+      const turnstileToken = String(fields.get('cf-turnstile-response') || '');
+      if (!turnstileToken) { if (status) status.textContent = 'Complete the security check.'; return; }
+      const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (submit) submit.disabled = true;
+      if (status) status.textContent = 'Holding your items…';
+      const payload = {
+        dropId: drop.dataset.dropId, items: chosen,
+        customer: { name: fields.get('name'), email: fields.get('email'), phone: fields.get('phone'), paymentMethod: fields.get('paymentMethod'), paymentName: fields.get('paymentName'), notes: fields.get('notes') },
+        shipping: { line1: fields.get('line1'), line2: fields.get('line2'), city: fields.get('city'), region: fields.get('region'), postalCode: fields.get('postalCode'), countryCode: fields.get('countryCode') },
+        privacyAccepted: fields.get('privacyAccepted') === 'on', reservationTermsAccepted: fields.get('reservationTermsAccepted') === 'on',
+        turnstileToken, idempotencyKey, website: fields.get('website'),
+      };
+      const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => null);
+      const result = await response?.json().catch(() => ({}));
+      if (response?.ok) {
+        form.hidden = true;
+        const success = drop.querySelector<HTMLElement>('[data-success]');
+        if (success) success.hidden = false;
+        const set = (selector: string, value: string) => { const node = drop.querySelector<HTMLElement>(selector); if (node) node.textContent = value; };
+        set('[data-success-reference]', result.reference || ''); set('[data-success-total]', money(result.totalMinor, result.currency));
+        set('[data-success-expiry]', new Date(result.expiresAt).toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' }));
+        set('[data-success-instructions]', result.paymentInstructions || 'Please check your email for payment instructions.'); success?.focus();
+      } else {
+        const messages: Record<string, string> = { availability_changed: 'Availability changed while you were reserving. Refresh the page and choose again.', active_reservation_exists: 'This email or phone already has a live reservation for this drop.', security_check_failed: 'The security check expired. Please complete it again.', validation_failed: 'Check the form and try again.' };
+        if (status) status.textContent = messages[result?.error] || 'Reservations are temporarily unavailable. Please try again.';
+        const firstField = result?.fields ? Object.keys(result.fields)[0] : '';
+        const target = firstField && firstField !== 'items' ? form.elements.namedItem(firstField) as HTMLElement | null : null;
+        if (target) target.focus();
+        if (submit) submit.disabled = false;
+        (window as any).turnstile?.reset();
+      }
+    });
+    updateTotal();
+  });
+</script>
+
+<style>
+  .drop-hero { padding: 4rem 0 3rem; max-width: 44rem; }
+  .eyebrow, .item-type { color: var(--ff-grape-neon); font-size: .72rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+  .drop-hero h1 { margin-top: .9rem; color: var(--ff-resin-cream); font-family: 'Pokemon GB', monospace; font-size: clamp(1.7rem, 5vw, 2.8rem); line-height: 1.45; }
+  .drop-hero > p:last-child, .drop-hero > h1 + p { margin-top: 1rem; color: var(--ff-text-secondary); line-height: 1.8; }
+  .preview-note, .notice { margin-top: 1.5rem; padding: .85rem 1rem; border: 1px solid var(--ff-resin-gold); border-radius: .75rem; color: var(--ff-resin-cream); background: rgba(214,184,90,.08); font-size: .85rem; }
+  .empty-state { min-height: 24rem; display: grid; place-items: center; align-content: center; gap: 1rem; text-align: center; border: 1px dashed var(--ff-border-subtle); border-radius: 1.5rem; padding: 3rem 1.5rem; background: radial-gradient(circle at top, rgba(122,92,255,.15), transparent 55%); }
+  .empty-state h2, .drop-header h2 { color: var(--ff-resin-cream); font-family: 'Pokemon GB', monospace; line-height: 1.6; }
+  .empty-state p { max-width: 33rem; color: var(--ff-text-secondary); line-height: 1.7; }
+  .empty-icon { font-size: 2.5rem; color: var(--ff-lime-bright); }
+  .primary-link, .reserve-button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: .75rem; background: var(--ff-grape-vivid); color: white; padding: .75rem 1.2rem; font-weight: 900; }
+  .drop-list { display: grid; gap: 2rem; }
+  .drop-card { overflow: hidden; border: 1px solid var(--ff-border-subtle); border-radius: 1.5rem; background: var(--ff-bg-secondary); }
+  .drop-header { display: grid; gap: 1.5rem; padding: clamp(1.25rem,4vw,2rem); border-bottom: 1px solid var(--ff-border-subtle); }
+  .drop-header h2 { margin-top: 1rem; font-size: clamp(1.1rem,4vw,1.55rem); }
+  .drop-header p { margin-top: .75rem; max-width: 38rem; color: var(--ff-text-secondary); line-height: 1.7; }
+  .status-pill { display: inline-flex; padding: .4rem .65rem; border-radius: 999px; font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+  .status-active { color: #0b0b10; background: var(--ff-lime-bright); }.status-upcoming { color: #0b0b10; background: var(--ff-status-upcoming); }.status-sold_out,.status-closed { background: var(--ff-bg-tertiary); color: var(--ff-text-secondary); }
+  .drop-meta { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }.drop-meta dt { color: var(--ff-text-muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; }.drop-meta dd { margin-top: .3rem; font-size: .85rem; font-weight: 700; }
+  .item-grid { display: grid; gap: 1px; background: var(--ff-border-subtle); }
+  .item-card { display: grid; grid-template-columns: minmax(110px, 190px) 1fr; gap: 1.25rem; background: var(--ff-bg-secondary); padding: 1.25rem; }
+  .item-art { aspect-ratio: 1; overflow: hidden; border-radius: 1rem; background: var(--ff-bg-primary); }.item-art img { width: 100%; height: 100%; object-fit: contain; }.item-sold-out .item-art { filter: grayscale(1); opacity: .55; }
+  .item-copy h3 { margin-top: .35rem; color: var(--ff-resin-cream); font-size: 1.15rem; font-weight: 900; }.item-copy > p:not(.item-type):not(.artist):not(.limit) { margin-top: .7rem; color: var(--ff-text-secondary); font-size: .88rem; line-height: 1.6; }.artist { color: var(--ff-resin-gold); font-size: .78rem; margin-top: .25rem; }
+  .item-bottom { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 1.2rem; }.item-bottom strong,.item-bottom small { display: block; }.item-bottom small,.limit { color: var(--ff-text-muted); font-size: .7rem; margin-top: .25rem; }
+  .quantity { display: flex; align-items: center; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; overflow: hidden; }.quantity button { width: 44px; height: 44px; font-size: 1.25rem; background: var(--ff-bg-tertiary); }.quantity input { width: 42px; height: 44px; border-inline: 1px solid var(--ff-border-subtle); background: var(--ff-bg-primary); color: white; text-align: center; appearance: textfield; }
+  .reservation-form { border-top: 1px solid var(--ff-border-subtle); padding: clamp(1.25rem,4vw,2rem); }.form-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }.form-heading h3 { margin-top: .5rem; font-size: 1.15rem; font-weight: 900; }.order-total { min-width: 9rem; text-align: right; }.order-total span,.order-total small { display: block; color: var(--ff-text-muted); font-size: .7rem; }.order-total strong { display: block; color: var(--ff-lime-bright); font-size: 1.25rem; }.basket-hint { margin-top: 1rem; color: var(--ff-text-secondary); font-size: .85rem; }
+  fieldset { margin-top: 2rem; padding: 0; border: 0; } legend { margin-bottom: 1rem; color: var(--ff-resin-cream); font-size: .8rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }.form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }.wide { grid-column: 1/-1; } label > span { display: block; margin-bottom: .45rem; font-size: .8rem; font-weight: 800; } label small { color: var(--ff-text-muted); font-weight: 500; }
+  input:not([type='checkbox']), select, textarea { width: 100%; min-height: 48px; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-primary); color: var(--ff-text-primary); padding: .75rem; } textarea { resize: vertical; }.payment-method { min-height: 48px; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-tertiary); padding: .75rem; }.payment-method > span { display:block; color:var(--ff-text-muted); font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }.payment-method strong { display:block; margin-top:.2rem; color:var(--ff-resin-cream); }.payment-method p,.field-help { display:block; margin-top:.35rem; color:var(--ff-text-muted); font-size:.72rem; line-height:1.5; }.agreements { display: grid; gap: .9rem; margin-top: 2rem; }.agreements label { display: grid; grid-template-columns: 24px 1fr; align-items: start; gap: .65rem; color: var(--ff-text-secondary); line-height: 1.55; }.agreements input { width: 22px; height: 22px; accent-color: var(--ff-grape-vivid); }.honeypot { position: absolute; left: -9999px; }.cf-turnstile { margin-top: 1.5rem; }.reserve-button { width: 100%; margin-top: 1.5rem; border: 0; }.reserve-button:disabled { opacity: .55; cursor: not-allowed; }.form-status { min-height: 1.5rem; margin-top: .8rem; color: var(--ff-status-upcoming); font-size: .85rem; }.inactive-message { padding: 1.5rem; color: var(--ff-text-secondary); text-align: center; }.reservation-success { padding: 2rem; border-top: 1px solid var(--ff-border-subtle); }.reservation-success h3 { margin-top: .5rem; font-size: 1.2rem; font-weight: 900; }.reservation-success dl { display: grid; gap: .75rem; margin-top: 1.5rem; }.reservation-success dl div { display: flex; justify-content: space-between; gap: 1rem; }.reservation-success dt { color: var(--ff-text-muted); }.reservation-success dd { text-align: right; font-weight: 800; }.payment-instructions { margin-block: 1.5rem; border-radius: .75rem; background: var(--ff-bg-primary); padding: 1rem; }.payment-instructions p { margin-top: .5rem; white-space: pre-wrap; color: var(--ff-text-secondary); }
+  @media (min-width: 700px) { .drop-header { grid-template-columns: 1fr auto; }.item-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.item-card { grid-template-columns: 1fr; }.item-card:only-child { grid-column:1/-1; grid-template-columns:minmax(160px,220px) 1fr; }.item-art { max-height: 230px; } }
+  @media (max-width: 540px) { .item-card { grid-template-columns: 1fr; }.form-grid { grid-template-columns: 1fr; }.wide { grid-column: auto; }.form-heading { display: grid; }.order-total { text-align: left; }.item-bottom { align-items: center; } }
+</style>

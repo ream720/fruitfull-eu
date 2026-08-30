@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Pokemon GB';
+  src: url('/fonts/PokemonGb-RAeo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-pokemon: 'Pokemon GB', monospace;
+}
+
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  :root {
+    /* Core Neutrals (Foundation) */
+    --ff-bg-primary: #0b0b10;     /* near-black, cosmic */
+    --ff-bg-secondary: #161621;   /* card / panel background */
+    --ff-bg-tertiary: #1f1f2e;    /* elevated surfaces */
+    --ff-text-primary: #f5f3ee;   /* warm off-white */
+    --ff-text-secondary: #c9c6bd; /* muted body text */
+    --ff-text-muted: #9a98a0;     /* meta / labels */
+    --ff-border-subtle: #2c2c3a;  /* subtle borders */
+
+    /* Resin / Hash Palette (Premium Material) */
+    --ff-resin-cream: #e8e2cf;    /* creamy resin highlights */
+    --ff-resin-gold: #d6b85a;     /* premium gold accents */
+    --ff-resin-amber: #caa24a;    /* amber resin tones */
+
+    /* Core Fruit Accents (Primary Brand Colors) */
+    --ff-grape-deep: #3b2a5e;     /* deep grape background */
+    --ff-grape-vivid: #7a5cff;    /* primary grape accent */
+    --ff-grape-neon: #b68cff;     /* bright grape highlights */
+    --ff-peach-soft: #f4a27a;     /* soft peach tones */
+    --ff-peach-bright: #ff8c5a;   /* bright peach accent */
+    --ff-lime-soft: #9be15d;      /* soft lime green */
+    --ff-lime-bright: #7dff3f;    /* bright lime accent */
+
+    /* Neon / Highlight Accents (Use Carefully) */
+    --ff-pink-neon: #ff4fd8;      /* neon pink for emphasis */
+    --ff-cyan-neon: #3df3ff;      /* neon cyan for highlights */
+    --ff-rainbow-blue: #2e7cff;   /* rainbow blue accent */
+
+    /* Status & Metadata Colors */
+    --ff-status-current: #7dff3f;  /* lime for current genetics */
+    --ff-status-archived: #9a98a0; /* muted for archived */
+    --ff-status-upcoming: #ffcc4d; /* gold-yellow for upcoming */
+
+    /* Rounded sticker aesthetic */
+    --ff-radius-sm: 0.5rem;       /* 8px for small elements */
+    --ff-radius-md: 0.75rem;      /* 12px for cards */
+    --ff-radius-lg: 1rem;         /* 16px for large cards */
+    --ff-radius-xl: 1.5rem;       /* 24px for hero elements */
+  }
+}
+
+@layer utilities {
+  .font-pokemon { font-family: 'Pokemon GB', monospace; }
+
+  /* Background utilities */
+  .bg-ff-bg-primary { background-color: var(--ff-bg-primary); }
+  .bg-ff-bg-secondary { background-color: var(--ff-bg-secondary); }
+  .bg-ff-bg-tertiary { background-color: var(--ff-bg-tertiary); }
+
+  /* Text color utilities */
+  .text-ff-text-primary { color: var(--ff-text-primary); }
+  .text-ff-text-secondary { color: var(--ff-text-secondary); }
+  .text-ff-text-muted { color: var(--ff-text-muted); }
+
+  /* Resin colors */
+  .text-ff-resin-cream { color: var(--ff-resin-cream); }
+  .text-ff-resin-gold { color: var(--ff-resin-gold); }
+  .text-ff-resin-amber { color: var(--ff-resin-amber); }
+
+  /* Grape colors */
+  .bg-ff-grape-vivid { background-color: var(--ff-grape-vivid); }
+  .bg-ff-grape-neon { background-color: var(--ff-grape-neon); }
+  .text-ff-grape-vivid { color: var(--ff-grape-vivid); }
+  .text-ff-grape-neon { color: var(--ff-grape-neon); }
+
+  /* Border utilities */
+  .border-ff-border-subtle { border-color: var(--ff-border-subtle); }
+  .border-ff-grape-vivid { border-color: var(--ff-grape-vivid); }
+
+  /* Border radius utilities */
+  .rounded-ff-sm { border-radius: var(--ff-radius-sm); }
+  .rounded-ff-md { border-radius: var(--ff-radius-md); }
+  .rounded-ff-lg { border-radius: var(--ff-radius-lg); }
+  .rounded-ff-xl { border-radius: var(--ff-radius-xl); }
+
+  /* Hover states */
+  .hover\:text-ff-resin-cream:hover { color: var(--ff-resin-cream); }
+  .hover\:text-ff-text-primary:hover { color: var(--ff-text-primary); }
+  .hover\:text-ff-grape-neon:hover { color: var(--ff-grape-neon); }
+  .hover\:bg-ff-grape-neon:hover { background-color: var(--ff-grape-neon); }
+  .hover\:border-ff-grape-vivid:hover { border-color: var(--ff-grape-vivid); }
+}

@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getAdminSession } from '../../lib/admin-auth';
+
+export const prerender = false;
+if (await getAdminSession(Astro.cookies)) return Astro.redirect('/admin/orders');
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+
+<BaseLayout title="Admin sign in | Fruitfull Seeds EU" description="Fruitfull Seeds EU order administration sign in.">
+  <section class="mx-auto max-w-md pt-16">
+    <p class="mb-3 text-xs font-bold uppercase tracking-[.22em] text-ff-grape-neon">Order admin</p>
+    <h1 class="font-pokemon text-xl leading-relaxed text-ff-resin-cream">Sign in by email</h1>
+    <p class="mt-4 text-sm leading-7 text-ff-text-secondary">We’ll send a secure, one-time link to an invited administrator email.</p>
+    <form id="login-form" class="mt-8 rounded-ff-xl border border-ff-border-subtle bg-ff-bg-secondary p-6" novalidate>
+      <label for="email" class="mb-2 block text-sm font-bold">Email address</label>
+      <input id="email" name="email" type="email" autocomplete="email" required class="form-input" />
+      <button class="primary-button mt-5 w-full" type="submit">Send sign-in link</button>
+      <p id="login-status" class="mt-4 min-h-6 text-sm text-ff-text-secondary" aria-live="polite"></p>
+    </form>
+  </section>
+</BaseLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#login-form');
+  const status = document.querySelector<HTMLElement>('#login-status');
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector<HTMLButtonElement>('button');
+    const email = form.querySelector<HTMLInputElement>('#email');
+    if (!email?.checkValidity()) { email?.reportValidity(); return; }
+    if (button) button.disabled = true;
+    if (status) status.textContent = 'Sending…';
+    const response = await fetch('/api/admin/magic-link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.value }),
+    }).catch(() => null);
+    if (status) status.textContent = response?.ok
+      ? 'If this address is invited, the sign-in link is on its way.'
+      : 'Sign-in email is temporarily unavailable. Please try again.';
+    if (button) button.disabled = false;
+  });
+</script>
+
+<style>
+  .form-input { width: 100%; min-height: 48px; border-radius: .75rem; border: 1px solid var(--ff-border-subtle); background: var(--ff-bg-primary); color: var(--ff-text-primary); padding: .75rem; }
+  .primary-button { min-height: 48px; border-radius: .75rem; background: var(--ff-grape-vivid); color: white; padding: .75rem 1rem; font-weight: 800; }
+  .primary-button:disabled { opacity: .6; cursor: wait; }
+</style>

@@ -1,0 +1,375 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  images: string[];
+  videos?: string[];
+  productName: string;
+  galleryAlt?: string[];
+  videoAlt?: string[];
+}
+
+const { images = [], videos = [], productName, galleryAlt = [], videoAlt = [] } = Astro.props;
+
+const mediaItems = [
+  ...videos.map((src, i) => ({
+    type: 'video',
+    src,
+    alt: videoAlt[i] || `${productName} video showcase`
+  })),
+  ...images.map((src, i) => ({
+    type: 'image',
+    src,
+    alt: galleryAlt[i] || `${productName} gallery image`
+  }))
+];
+---
+
+<div class="grid grid-cols-3 gap-2">
+  {mediaItems.map((item, index) => (
+    <div
+      class="relative w-full h-16 rounded border border-ff-border-subtle hover:border-ff-grape-vivid transition-colors cursor-pointer gallery-item overflow-hidden bg-black"
+      data-gallery-index={index}
+      data-gallery-type={item.type}
+      data-gallery-src={item.src}
+      data-gallery-alt={item.alt}
+    >
+      {item.type === 'video' ? (
+         <div class="w-full h-full relative">
+           <video
+              src={item.src}
+              class="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              onmouseover="this.play()"
+              onmouseout="this.pause()"
+           />
+           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="bg-black/40 rounded-full p-1">
+                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
+              </div>
+           </div>
+         </div>
+      ) : (
+        <Image
+          src={item.src}
+          alt={item.alt}
+          width={128}
+          height={64}
+          class="w-full h-full object-cover"
+          loading="lazy"
+        />
+      )}
+    </div>
+  ))}
+</div>
+
+<!-- Modal HTML Structure -->
+<div id="gallery-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+  <!-- Modal Container -->
+  <div class="relative max-w-full max-h-full flex items-center justify-center w-full h-full">
+    <!-- Close Button -->
+    <button
+      id="modal-close"
+      class="absolute top-4 right-4 z-50 w-10 h-10 bg-black/50 hover:bg-white/10 rounded-full flex items-center justify-center text-white transition-all backdrop-blur-md"
+      aria-label="Close modal"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+
+    <!-- Loading Spinner -->
+    <div id="modal-loading" class="absolute inset-0 flex items-center justify-center z-40 hidden pointer-events-none">
+        <Image src="/images/fruitfull/logo/Logo2_new.png" width={80} height={80} class="w-20 h-20 animate-spin-slow opacity-80" alt="Loading..." />
+    </div>
+
+    <!-- Image Display Area -->
+    <div class="relative flex items-center justify-center w-full h-full p-4 md:p-12">
+      <img
+        id="modal-image"
+        src=""
+        alt=""
+        class="hidden max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl transition-opacity duration-200"
+      />
+
+      <video
+        id="modal-video"
+        class="hidden max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl"
+        loop
+        playsinline
+        muted
+        autoplay
+      ></video>
+
+      <!-- Image Counter -->
+      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-medium border border-white/10">
+        <span id="modal-counter">1 / 1</span>
+      </div>
+    </div>
+
+    <!-- Navigation Arrows -->
+    <button
+      id="modal-prev"
+      class="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all z-50"
+      aria-label="Previous item"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+
+    <button
+      id="modal-next"
+      class="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-black/50 hover:bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all z-50"
+      aria-label="Next item"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<style>
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('gallery-modal') as HTMLElement | null;
+    const modalImage = document.getElementById('modal-image') as HTMLImageElement | null;
+    const modalVideo = document.getElementById('modal-video') as HTMLVideoElement | null;
+    const modalLoading = document.getElementById('modal-loading') as HTMLElement | null;
+    const modalCounter = document.getElementById('modal-counter') as HTMLElement | null;
+    const modalClose = document.getElementById('modal-close') as HTMLElement | null;
+    const modalPrev = document.getElementById('modal-prev') as HTMLElement | null;
+    const modalNext = document.getElementById('modal-next') as HTMLElement | null;
+    const galleryItems = document.querySelectorAll('.gallery-item');
+
+    if (!modal || !modalImage || !modalVideo || !modalLoading || !modalCounter || !modalClose || !modalPrev || !modalNext) {
+      return;
+    }
+
+    // Modal state
+    let currentImageIndex: number = 0;
+    let galleryData: Array<{type: 'image' | 'video', src: string, alt: string, index: number}> = [];
+    let originalFocusElement: Element | null = null;
+
+    // Touch handling state
+    let touchStartX: number = 0;
+    let touchEndX: number = 0;
+
+    // Prepare gallery data
+    galleryItems.forEach((item, index) => {
+      const itemElement = item as HTMLElement;
+      galleryData.push({
+        type: (itemElement.dataset.galleryType as 'image' | 'video') || 'image',
+        src: itemElement.dataset.gallerySrc || '',
+        alt: itemElement.dataset.galleryAlt || `Item ${index + 1}`,
+        index: index
+      });
+    });
+
+    // Update button visibility
+    function updateNavigationButtons(index: number): void {
+      if (!modalPrev || !modalNext) return;
+
+      if (index <= 0) {
+        modalPrev.classList.add('hidden');
+        modalPrev.classList.remove('flex');
+      } else {
+        modalPrev.classList.remove('hidden');
+        modalPrev.classList.add('flex');
+      }
+
+      if (index >= galleryData.length - 1) {
+        modalNext.classList.add('hidden');
+        modalNext.classList.remove('flex');
+      } else {
+        modalNext.classList.remove('hidden');
+        modalNext.classList.add('flex');
+      }
+    }
+
+    // Hide loader helper
+    function hideLoader() {
+        if(modalLoading) modalLoading.classList.add('hidden');
+    }
+
+    // Show loader helper
+    function showLoader() {
+        if(modalLoading) modalLoading.classList.remove('hidden');
+    }
+
+    // Load and display content
+    function loadContent(index: number): void {
+      if (galleryData.length === 0) return;
+      const itemData = galleryData[index];
+      if (!itemData) return;
+
+      // Reset visibility and loader
+      if(modalImage) modalImage.classList.add('hidden');
+      if(modalVideo) {
+          modalVideo.pause();
+          modalVideo.classList.add('hidden');
+          modalVideo.src = ''; // reset src to stop buffering
+      }
+      showLoader();
+
+      if (itemData.type === 'video') {
+         // Video Handling
+         if (modalVideo) {
+             modalVideo.src = itemData.src;
+             modalVideo.classList.remove('hidden');
+
+             // Try to play
+             const playPromise = modalVideo.play();
+             if (playPromise !== undefined) {
+                 playPromise.then(() => {
+                     // Auto-play started
+                 }).catch(error => {
+                     console.log("Auto-play prevented:", error);
+                 });
+             }
+
+             // Hide loader when enough data
+             modalVideo.onloadeddata = () => {
+                 hideLoader();
+             };
+             // Fallback if cached
+             if(modalVideo.readyState >= 3) {
+                 hideLoader();
+             }
+         }
+      } else {
+         // Image Handling
+         if (modalImage) {
+            modalImage.alt = itemData.alt;
+
+             // Preload image
+             const newImage = new Image();
+             newImage.onload = function() {
+                 if(modalImage) {
+                     modalImage.src = itemData.src;
+                     modalImage.classList.remove('hidden');
+                     hideLoader();
+                 }
+             };
+             newImage.onerror = function() {
+                 hideLoader(); // Hide loader even on error
+             };
+             newImage.src = itemData.src;
+
+             // Set src immediately too (it might be cached)
+             // But the onload above ensures we only show it when ready/cached
+             // Actually, setting src on the element might be better if we want to show progressive load
+             // But for cleaner UI, we only show when loaded:
+         }
+      }
+
+      // Update counter
+      if (modalCounter) {
+        modalCounter.textContent = `${index + 1} / ${galleryData.length}`;
+      }
+    }
+
+    // Show previous
+    function showPrevious(): void {
+      if (currentImageIndex > 0) {
+        currentImageIndex--;
+        loadContent(currentImageIndex);
+        updateNavigationButtons(currentImageIndex);
+      }
+    }
+
+    // Show next
+    function showNext(): void {
+      if (currentImageIndex < galleryData.length - 1) {
+        currentImageIndex++;
+        loadContent(currentImageIndex);
+        updateNavigationButtons(currentImageIndex);
+      }
+    }
+
+    // Open modal
+    function openModal(index: number): void {
+      if (galleryData.length === 0 || !modal) return;
+
+      currentImageIndex = index;
+      originalFocusElement = document.activeElement;
+
+      // Show modal
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+
+      // Load content
+      loadContent(currentImageIndex);
+      updateNavigationButtons(currentImageIndex);
+      modal.focus();
+    }
+
+    // Close modal
+    function closeModal(): void {
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+
+      // Stop video
+      if(modalVideo) {
+          modalVideo.pause();
+          modalVideo.src = '';
+      }
+
+      if (originalFocusElement && 'focus' in originalFocusElement) {
+        (originalFocusElement as HTMLElement).focus();
+      }
+    }
+
+    // Swipe handling
+    function handleTouchStart(e: TouchEvent) {
+      touchStartX = e.changedTouches[0].screenX;
+    }
+    function handleTouchEnd(e: TouchEvent) {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    }
+    function handleSwipe() {
+      const swipeThreshold = 50;
+      if (touchEndX < touchStartX - swipeThreshold) showNext();
+      if (touchEndX > touchStartX + swipeThreshold) showPrevious();
+    }
+
+    // Event Listeners
+    galleryItems.forEach((item, index) => {
+      item.addEventListener('click', () => openModal(index));
+    });
+
+    if (modalPrev) modalPrev.addEventListener('click', (e) => { e.stopPropagation(); showPrevious(); });
+    if (modalNext) modalNext.addEventListener('click', (e) => { e.stopPropagation(); showNext(); });
+    if (modalClose) modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // Touch
+    modal.addEventListener('touchstart', handleTouchStart, { passive: true });
+    modal.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    // Keyboard
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (!modal || modal.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeModal();
+      else if (e.key === 'ArrowLeft') showPrevious();
+      else if (e.key === 'ArrowRight') showNext();
+    });
+  });
+</script>
