@@ -1,16 +1,14 @@
 import type { PublicDrop } from "./drops";
 
-const runtimeEnv = typeof process !== "undefined" ? process.env : {};
-
 const getConfig = () => ({
-  url: runtimeEnv.SUPABASE_URL || runtimeEnv.PUBLIC_SUPABASE_URL ||
+  url: process.env.SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL ||
     import.meta.env.SUPABASE_URL || import.meta.env.PUBLIC_SUPABASE_URL ||
     import.meta.env.SUPABASE_SUPABASE_URL || import.meta.env.SUPABASE_PUBLIC_SUPABASE_URL || "",
-  secret: runtimeEnv.SUPABASE_SECRET_KEY || runtimeEnv.SUPABASE_SERVICE_ROLE_KEY ||
+  secret: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ||
     import.meta.env.SUPABASE_SECRET_KEY || import.meta.env.SUPABASE_SERVICE_ROLE_KEY ||
     import.meta.env.SUPABASE_SUPABASE_SECRET_KEY || import.meta.env.SUPABASE_SUPABASE_SERVICE_ROLE_KEY || "",
-  publishableKey: runtimeEnv.SUPABASE_PUBLISHABLE_KEY || runtimeEnv.PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    runtimeEnv.SUPABASE_ANON_KEY || runtimeEnv.PUBLIC_SUPABASE_ANON_KEY ||
+  publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY ||
     import.meta.env.SUPABASE_PUBLISHABLE_KEY || import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     import.meta.env.SUPABASE_ANON_KEY || import.meta.env.PUBLIC_SUPABASE_ANON_KEY ||
     import.meta.env.SUPABASE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.SUPABASE_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
