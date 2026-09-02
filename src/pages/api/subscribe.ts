@@ -31,22 +31,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     const apiKey = import.meta.env.BREVO_API_KEY;
     const listId = Number(import.meta.env.BREVO_LIST_ID);
-    const templateId = Number(import.meta.env.BREVO_DOI_TEMPLATE_ID);
-    const redirectionUrl = import.meta.env.BREVO_DOI_REDIRECT_URL
-      || 'https://fruitfullseeds.eu.com/?newsletter=confirmed#newsletter';
 
-    if (
-      !apiKey
-      || !Number.isInteger(listId)
-      || listId <= 0
-      || !Number.isInteger(templateId)
-      || templateId <= 0
-    ) {
-      console.error('Brevo double-opt-in environment variables are not configured');
+    if (!apiKey || !Number.isInteger(listId) || listId <= 0) {
+      console.error('Brevo contact collection environment variables are not configured');
       return jsonResponse({ success: false, error: 'Newsletter service is not configured.' }, 500);
     }
 
-    const brevoResponse = await fetch('https://api.brevo.com/v3/contacts/doubleOptinConfirmation', {
+    const brevoResponse = await fetch('https://api.brevo.com/v3/contacts', {
       method: 'POST',
       headers: {
         accept: 'application/json',
@@ -55,22 +46,21 @@ export const POST: APIRoute = async ({ request }) => {
       },
       body: JSON.stringify({
         email,
-        includeListIds: [listId],
-        templateId,
-        redirectionUrl,
+        listIds: [listId],
+        updateEnabled: true,
       }),
     });
 
     if (brevoResponse.ok) {
-      return jsonResponse({ success: true, confirmationRequired: true }, 200);
+      return jsonResponse({ success: true, alreadySubscribed: brevoResponse.status === 204 }, 200);
     }
 
     const brevoError = await brevoResponse.json().catch(() => null);
     const errorMessage = brevoError?.message || 'Something went wrong. Please try again.';
 
-    // Existing contacts may already be subscribed or have a confirmation pending.
+    // Treat an existing contact as a successful subscription request.
     if (brevoResponse.status === 400 && errorMessage.toLowerCase().includes('already exist')) {
-      return jsonResponse({ success: true, confirmationRequired: true }, 200);
+      return jsonResponse({ success: true, alreadySubscribed: true }, 200);
     }
 
     console.error('Brevo API error:', brevoResponse.status, brevoError);

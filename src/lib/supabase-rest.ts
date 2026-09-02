@@ -44,7 +44,7 @@ export const callRpc = async <T>(name: string, body: Record<string, unknown>): P
 export const getPublicDrops = async (): Promise<PublicDrop[]> => {
   if (!isSupabaseConfigured()) return [];
   const query = new URLSearchParams({
-    select: "id,slug,title,description,opens_at,closes_at,currency,shipping_amount_minor,payment_methods,active,drop_items(id,drop_id,sku,name,item_type,artist,image_path,description,amount_minor,stock_total,stock_available,max_per_order,active)",
+    select: "id,slug,title,description,opens_at,closes_at,currency,shipping_amount_minor,payment_methods,active,drop_items(id,drop_id,sku,name,item_type,artist,image_path,secondary_image_path,description,amount_minor,stock_total,stock_available,max_per_order,active)",
     active: "eq.true",
     order: "opens_at.asc",
     "drop_items.order": "name.asc",

@@ -8,6 +8,7 @@ export interface DropItem {
   item_type: string;
   artist: string;
   image_path: string;
+  secondary_image_path?: string | null;
   description: string;
   amount_minor: number;
   stock_total: number;

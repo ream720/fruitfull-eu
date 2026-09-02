@@ -2,15 +2,15 @@
 import { Image } from 'astro:assets';
 import BaseLayout from "../layouts/BaseLayout.astro";
 import NewsletterSignup from "../components/NewsletterSignup.astro";
-import CountdownPill from "../components/CountdownPill.astro";
+import { withBase } from "../lib/base-path";
 ---
 
 <BaseLayout
   title="Fruitfull Seeds EU - Premium Genetics"
-  description="Discover premium Fruitfull Seeds genetics for Europe. Explore our curated collection of hashmaker-focused strains with detailed wash metrics and grow notes."
+  description="Fruitfull Seeds for Europe. Follow future seed drops, events, and hashmaker-focused releases."
 >
   <!-- Hero Section -->
-  <div class="relative min-h-[45vh] flex items-center justify-center px-4 py-8 pb-24 overflow-hidden">
+  <div class="relative min-h-[45vh] flex items-center justify-center px-4 py-8 pb-12 overflow-hidden">
     <!-- Subtle Background Effects -->
     <div class="absolute inset-0 opacity-30 rounded-3xl overflow-hidden">
       <div class="absolute top-20 left-1/4 w-96 h-96 bg-ff-grape-vivid rounded-full mix-blend-multiply filter blur-3xl"></div>
@@ -20,7 +20,7 @@ import CountdownPill from "../components/CountdownPill.astro";
     <!-- Background Logo -->
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
       <Image
-        src="/images/fruitfull/logo/Characters.png"
+        src={withBase('/images/fruitfull/logo/Characters.png')}
         alt=""
         width={1280}
         height={1280}
@@ -37,7 +37,7 @@ import CountdownPill from "../components/CountdownPill.astro";
       <div class="space-y-4 md:space-y-6">
         <h1 class="font-extrabold leading-tight space-y-2">
           <Image
-            src="/images/fruitfull/logo/Logo1.png"
+            src={withBase('/images/fruitfull/logo/Logo1.png')}
             alt="Fruitfull Seeds"
             width={400}
             height={120}
@@ -58,11 +58,11 @@ import CountdownPill from "../components/CountdownPill.astro";
       <!-- CTA Button -->
       <div class="pt-2">
         <a
-          href="/genetics"
+          href={withBase('/genetics')}
           id="explore-cta"
           class="group relative inline-flex items-center gap-2 bg-ff-grape-vivid hover:bg-ff-grape-neon text-ff-text-primary font-bold px-8 sm:px-10 py-3 sm:py-4 rounded-ff-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 text-base sm:text-lg"
         >
-          Explore Genetics Library
+          View EU Seed Library
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
           </svg>
@@ -70,7 +70,7 @@ import CountdownPill from "../components/CountdownPill.astro";
           <!-- Cute Sprite Charm -->
           <Image
             id="cta-sprite"
-            src="/images/fruitfull/sprites/sprite_berry_mist.png"
+            src={withBase('/images/fruitfull/sprites/sprite_berry_mist.png')}
             alt=""
             width={100}
             height={100}
@@ -83,19 +83,21 @@ import CountdownPill from "../components/CountdownPill.astro";
   </div>
 
   <script>
+    import { withBase } from '../lib/base-path';
+
     const sprites = [
-      "/images/fruitfull/sprites/sprite_berry_mist.png",
-      "/images/fruitfull/sprites/sprite_jelly_raunchers.png",
-      "/images/fruitfull/sprites/sprite_missing_bow.png",
-      "/images/fruitfull/sprites/sprite_ms_frizzle.png",
-      "/images/fruitfull/sprites/sprite_oops_all_berries.png",
-      "/images/fruitfull/sprites/sprite_peach_frozeti.png",
-      "/images/fruitfull/sprites/sprite_pinkalicious.PNG",
-      "/images/fruitfull/sprites/sprite_rainbow_juice.png",
-      "/images/fruitfull/sprites/sprite_rg5_s1.png",
-      "/images/fruitfull/sprites/sprite_watermelon_welchz.png",
-      "/images/fruitfull/sprites/sprite_purple_peelz.png",
-      "/images/fruitfull/sprites/sprite_galapagos.png"
+      withBase("/images/fruitfull/sprites/sprite_berry_mist.png"),
+      withBase("/images/fruitfull/sprites/sprite_jelly_raunchers.png"),
+      withBase("/images/fruitfull/sprites/sprite_missing_bow.png"),
+      withBase("/images/fruitfull/sprites/sprite_ms_frizzle.png"),
+      withBase("/images/fruitfull/sprites/sprite_oops_all_berries.png"),
+      withBase("/images/fruitfull/sprites/sprite_peach_frozeti.png"),
+      withBase("/images/fruitfull/sprites/sprite_pinkalicious.PNG"),
+      withBase("/images/fruitfull/sprites/sprite_rainbow_juice.png"),
+      withBase("/images/fruitfull/sprites/sprite_rg5_s1.png"),
+      withBase("/images/fruitfull/sprites/sprite_watermelon_welchz.png"),
+      withBase("/images/fruitfull/sprites/sprite_purple_peelz.png"),
+      withBase("/images/fruitfull/sprites/sprite_galapagos.png")
     ];
 
     const btn = document.getElementById('explore-cta');
@@ -118,145 +120,6 @@ import CountdownPill from "../components/CountdownPill.astro";
 
 
   </script>
-
-
-  <!-- Events & Upcoming Drops Section -->
-  <div class="relative z-10 px-4 py-10 md:py-14 -mt-14 md:-mt-18">
-    <div class="max-w-4xl mx-auto space-y-8">
-
-      <!-- Section Header -->
-      <div class="text-center max-w-xl mx-auto space-y-2 mt-8">
-        <!-- <h2 class="text-2xl sm:text-3xl font-extrabold text-ff-text-primary tracking-tight font-pokemon">
-          Events & Upcoming Drops
-        </h2> -->
-        <p class="text-sm text-ff-text-secondary font-pokemon">
-          Join us at Culture Cup 2026 and get ready for our next exclusive strain drop!
-        </p>
-      </div>
-
-      <!-- Main Consolidated Section Card -->
-      <div class="rounded-ff-xl bg-ff-bg-secondary/80 border border-ff-border-subtle p-5 sm:p-7 md:p-8 space-y-10 shadow-2xl backdrop-blur-sm">
-
-        <!-- Culture Cup 2026 -->
-        <div class="space-y-5">
-          <div class="border-b border-ff-border-subtle pb-4">
-            <div class="flex items-center gap-2.5">
-              <span class="text-2xl">🏆</span>
-              <h3 class="text-xl sm:text-2xl font-extrabold text-ff-text-primary font-pokemon">Culture Cup 2026</h3>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-            <!-- Promo Image Poster -->
-            <div class="md:col-span-5 relative group overflow-hidden rounded-ff-lg border border-ff-border-subtle bg-ff-bg-tertiary">
-              <Image
-                src="/images/promos-and-events/CULTURE_CUP_INSTA.png"
-                alt="Culture Cup 2026 Announcement"
-                width={800}
-                height={800}
-                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="eager"
-              />
-              <div class="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-ff-lg pointer-events-none"></div>
-            </div>
-
-            <!-- Event Information & Copy -->
-            <div class="md:col-span-7 space-y-4">
-              <p class="text-sm sm:text-base text-ff-text-secondary leading-relaxed font-pokemon">
-                Fruitfull Seeds is officially heading to <strong class="text-ff-text-primary">Culture Cup 2026</strong>! Join us on August 21st and 22nd for two full days celebrating elite genetics, solventless craft, and community.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section Divider -->
-        <div class="relative py-1">
-          <div class="absolute inset-0 flex items-center" aria-hidden="true">
-            <div class="w-full border-t border-ff-border-subtle"></div>
-          </div>
-          <div class="relative flex justify-center">
-            <span class="px-3 sm:px-4 bg-ff-bg-secondary text-[10px] sm:text-xs font-bold tracking-tight sm:tracking-widest text-ff-text-muted uppercase font-pokemon whitespace-nowrap">
-              Upcoming Drops • Aug 28th
-            </span>
-          </div>
-        </div>
-
-        <!-- Upcoming Drop Cards Grid -->
-        <div class="grid md:grid-cols-2 gap-6">
-
-          <!-- Grape Rainbow Pie F2 - Upcoming 8/28 Drop -->
-          <a href="/genetics/grape-rainbow-pie-f2" class="block group">
-            <div class="relative overflow-hidden rounded-ff-lg bg-ff-bg-tertiary border border-ff-border-subtle transition-all duration-300 hover:border-ff-grape-vivid hover:shadow-lg hover:shadow-ff-grape-vivid/10">
-              <div class="aspect-[16/10] overflow-hidden relative">
-                <Image
-                  src="/images/genetics/grape-rainbow-pie-f2/hero.png"
-                  alt="Grape Rainbow Pie F2"
-                  width={960}
-                  height={600}
-                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div class="absolute top-3 left-3">
-                  <CountdownPill targetISO="2026-08-28T16:20:00-06:00" label="Drops in" id="cd-pill-grape-rainbow-pie-f2" />
-                </div>
-              </div>
-              <div class="p-5 space-y-2">
-                <h3 class="text-md font-bold text-ff-text-primary group-hover:text-ff-grape-neon transition-colors font-pokemon">
-                  Grape Rainbow Pie F2
-                </h3>
-                <p class="text-xs text-ff-text-secondary">
-                  Dropping 8/28 at 4:20pm MST
-                </p>
-                <div class="pt-2 flex items-center gap-2 text-ff-grape-vivid group-hover:text-ff-grape-neon text-xs font-semibold transition-colors">
-                  <span>View Strain Details</span>
-                  <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </a>
-
-          <!-- Key Lime Grapes - Upcoming 8/28 Drop -->
-          <a href="/genetics/key-lime-grapes" class="block group">
-            <div class="relative overflow-hidden rounded-ff-lg bg-ff-bg-tertiary border border-ff-border-subtle transition-all duration-300 hover:border-ff-grape-vivid hover:shadow-lg hover:shadow-ff-grape-vivid/10">
-              <div class="aspect-[16/10] overflow-hidden relative">
-                <Image
-                  src="/images/genetics/key-lime-grapes/hero.png"
-                  alt="Key Lime Grapes"
-                  width={960}
-                  height={600}
-                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div class="absolute top-3 left-3">
-                  <CountdownPill targetISO="2026-08-28T16:20:00-06:00" label="Drops in" id="cd-pill-key-lime-grapes" />
-                </div>
-              </div>
-              <div class="p-5 space-y-2">
-                <h3 class="text-md font-bold text-ff-text-primary group-hover:text-ff-grape-neon transition-colors font-pokemon">
-                  Key Lime Grapes
-                </h3>
-                <p class="text-xs text-ff-text-secondary">
-                  Dropping 8/28 at 4:20pm MST
-                </p>
-                <div class="pt-2 flex items-center gap-2 text-ff-grape-vivid group-hover:text-ff-grape-neon text-xs font-semibold transition-colors">
-                  <span>View Strain Details</span>
-                  <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </a>
-
-        </div>
-
-      </div>
-
-    </div>
-  </div>
-
   <!-- Newsletter Signup Section -->
   <NewsletterSignup />
 </BaseLayout>

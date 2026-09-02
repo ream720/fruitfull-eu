@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/base-path';
 ---
 
 <BaseLayout title="About - Fruitfull Seeds EU" description="Meet Mr. Autogrow, the single-source hashmaker behind Fruitfull Seeds. Discover our story and commitment to unique fruit terps for solventless production.">
@@ -10,7 +11,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <!-- Hero/Intro -->
       <div class="text-center space-y-4">
         <h1 class="font-display text-4xl md:text-5xl text-ff-text-primary flex flex-col md:flex-row items-center justify-center gap-4">
-          <Image src="/images/fruitfull/logo/Logo1.png" alt="About Fruitfull Seeds" width={320} height={96} class="h-20 md:h-24 object-contain drop-shadow-lg filter" />
+          <Image src={withBase('/images/fruitfull/logo/Logo1.png')} alt="About Fruitfull Seeds" width={320} height={96} class="h-20 md:h-24 object-contain drop-shadow-lg filter" />
         </h1>
       </div>
 

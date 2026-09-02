@@ -26,8 +26,8 @@ const validateDrop = (drop, file) => {
   if (!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(drop.opensAt || '') || Number.isNaN(Date.parse(drop.opensAt))) errors.push('opensAt must be an ISO timestamp with an offset');
   if (drop.closesAt && (!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(drop.closesAt) || Number.isNaN(Date.parse(drop.closesAt)))) errors.push('closesAt must be an ISO timestamp with an offset');
   if (drop.closesAt && Date.parse(drop.closesAt) <= Date.parse(drop.opensAt)) errors.push('closesAt must follow opensAt');
-  if (drop.currency !== 'USD') errors.push('currency must be USD for the $10 flat shipping policy');
-  if (drop.shippingAmountMinor !== 1000) errors.push('shippingAmountMinor must be 1000 ($10.00)');
+  if (drop.currency !== 'EUR') errors.push('currency must be EUR for the €10 flat shipping policy');
+  if (drop.shippingAmountMinor !== 1000) errors.push('shippingAmountMinor must be 1000 (€10.00)');
   if (!Array.isArray(drop.paymentMethods) || drop.paymentMethods.length !== 1 || drop.paymentMethods[0] !== 'PayPal') errors.push('paymentMethods must be ["PayPal"]');
   if (typeof drop.active !== 'boolean') errors.push('active must be boolean');
   if (!Array.isArray(drop.items) || !drop.items.length) errors.push('at least one item is required');

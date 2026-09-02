@@ -1,6 +1,6 @@
 # Fruitfull Seeds EU
 
-Independent European deployment of the Fruitfull Seeds Astro site.
+Independent European deployment of the Fruitfull Seeds Astro site, published through the main domain at `https://fruitfullseeds.com/eu/`.
 
 ## Local development
 
@@ -14,32 +14,32 @@ Fill in the required values in `.env` before testing newsletter signup, reservat
 
 ## EU-specific configuration
 
-- Default production URL: `https://fruitfullseeds.eu.com`
+- Production URL: `https://fruitfullseeds.com/eu/`
 - Document language: `en-GB`
-- Newsletter: explicit consent plus Brevo double opt-in
+- Newsletter: explicit consent with Brevo used only for contact collection
 - Newsletter contacts: dedicated list selected by `BREVO_LIST_ID`
 - Original US site: linked through `hreflang="en-US"`
 
-If the final domain differs, set `SITE_URL` and `BREVO_DOI_REDIRECT_URL` in Vercel. Do not edit generated files in `dist/`.
+Set `SITE_URL=https://fruitfullseeds.com` in Vercel. Do not edit generated files in `dist/`.
 
-## Deploy as a separate Vercel project
+## Deploy behind the `/eu` route
 
 1. Push this directory to its own Git repository.
 2. Import that repository as a new Vercel project named `fruitfull-seeds-eu`.
 3. Add all variables from `.env.example` under Project Settings > Environment Variables for Production and Preview as appropriate.
-4. In Brevo, create a dedicated EU contact list and a double-opt-in transactional template. Put their numeric IDs in Vercel.
-5. Add the final custom domain under Project Settings > Domains and follow the DNS records Vercel displays.
-6. Deploy, then verify `/robots.txt`, `/sitemap-index.xml`, canonical tags, and newsletter confirmation.
+4. In Brevo, create a dedicated EU contact list and put its numeric ID in Vercel. No email template is required while Brevo remains collection-only.
+5. Keep this as a separate Vercel project and use its stable `fruitfull-seeds-eu.vercel.app` production alias as the upstream for the core site's `/eu` rewrites. The core rewrite removes `/eu` before forwarding; Astro's `base` setting adds it to every public URL returned to the browser.
+6. Deploy, then verify `/eu/robots.txt`, `/eu/sitemap-index.xml`, canonical tags, and newsletter confirmation through `https://fruitfullseeds.com/eu/`.
 
-Four breeder-cut entries still point to the original Rocky Mountain High vendor. Replace those links with an EU distributor before launch if availability differs.
+The EU seed library contains only genetics confirmed for European release. Rainbow Juice and Berry Mist are the first listed seeds.
 
 ## Drops and order administration
 
-The public Drops page is `/drops`. It remains in its newsletter empty state until an active catalog is synchronized. In local development, `/drops?preview=1` displays the inactive placeholder definition for layout testing; the preview form cannot submit.
+The public Drops page is `/drops`. It remains in its newsletter empty state until an active catalog is synchronized. In local development, `/drops?preview=1` displays the inactive Rainbow Juice + Berry Mist draft for layout testing; the preview form cannot submit.
 
-Launch checkout is USD-only with a server-enforced flat `$10.00` shipping charge per reservation. PayPal is the accepted payment method, and customers must provide the exact PayPal email or username where the team should send the manual payment request.
+Launch checkout is EUR-only with a server-enforced flat `€10.00` shipping charge per reservation. PayPal is the accepted payment method, and customers must provide the exact PayPal email or username where the team should send the manual payment request.
 
-Catalog definitions live in `src/content/drops`. Add real inventory only after the artist, USD amount, stock, PayPal instructions, and schedule are confirmed. Every definition must use `"currency": "USD"`, `"shippingAmountMinor": 1000`, and `"paymentMethods": ["PayPal"]`. Then run the explicit synchronization command:
+Catalog definitions live in `src/content/drops`. Add real inventory only after the artist, EUR amount, stock, PayPal instructions, and schedule are confirmed. Every definition must use `"currency": "EUR"`, `"shippingAmountMinor": 1000`, and `"paymentMethods": ["PayPal"]`. Then run the explicit synchronization command:
 
 ```powershell
 npm run drops:sync
@@ -51,17 +51,15 @@ The admin routes are `/admin/login` and `/admin/orders`. Administrators must fir
 
 - `http://localhost:4321/auth/callback`
 - the Vercel preview callback URL(s)
-- `https://fruitfullseeds.eu.com/auth/callback`
+- `https://fruitfullseeds.com/eu/auth/callback`
 
 ## Supabase deployment
 
 1. Create or connect a Supabase project through the Vercel Marketplace and choose Frankfurt (`eu-central-1`). Keep Vercel Functions in Frankfurt via `vercel.json`.
 2. Add all Supabase values from `.env.example` to Local, Preview, and Production as appropriate. Secret keys and `ADMIN_EMAILS` must never use a `PUBLIC_` prefix.
    The Vercel Marketplace may namespace synchronized variables with the resource prefix (for example `SUPABASE_SUPABASE_URL`); the application accepts both the standard names and these Vercel-prefixed forms.
-3. Generate a strong `DISPATCH_SECRET`. Add it to Edge Function secrets together with `BREVO_API_KEY` and every `BREVO_ORDER_*_TEMPLATE_ID`; Supabase provides its URL and named API keys to hosted functions automatically.
-4. Deploy `supabase/functions/send-order-emails`.
-5. In Supabase Vault create `fruitfull_project_url` with the project URL and `fruitfull_dispatch_secret` with the same `DISPATCH_SECRET`.
-6. Apply `supabase/migrations` in filename order with the Supabase CLI or SQL migration workflow. The migrations schedule the protected email function every minute and the database expiry job every five minutes. The function sends queued reservation, paid, awaiting-shipment, shipped, cancelled, and expired messages through Brevo, and retries failures up to eight attempts.
+3. Apply the order schema and expiry migrations. Do not deploy `supabase/functions/send-order-emails` or apply the notification-cron migration while automated email is disabled.
+4. Reservations show their reference, total, deadline, and payment instructions in the browser, with an explicit reminder to keep a screenshot because no confirmation email is sent. Handle PayPal requests and order communication manually during the initial launch.
 
 The schema enables RLS and removes browser-role access to orders, items, events, and notifications. Customer and admin mutations pass only through server routes. Do not log full API bodies or customer fields.
 
@@ -69,7 +67,7 @@ The schema enables RLS and removes browser-role access to orders, items, events,
 
 Create a Turnstile widget for localhost, preview domains, and production, then configure `PUBLIC_TURNSTILE_SITE_KEY` and server-only `TURNSTILE_SECRET_KEY`. Reservation tokens are verified with Cloudflare before the transactional reservation function runs. Use Cloudflare's official test keys in automated tests.
 
-Create separate Brevo transactional templates for each order lifecycle message. Template parameters include `reference`, `status`, `expiresAt`, `currency`, minor-unit totals, payment method, optional tracking fields, and item snapshots. These transactional messages do not subscribe the customer to the newsletter.
+Brevo is collection-only for the initial launch. The transactional email function and deferred cron definition in `supabase/deferred-migrations/notification_cron.sql` remain available for a later phase, but should not be deployed until the order templates and operational workflow are ready. When that phase begins, create a newly timestamped migration from the deferred SQL rather than moving it directly into the active migration history.
 
 ## Privacy operations
 

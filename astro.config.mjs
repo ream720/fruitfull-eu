@@ -9,13 +9,19 @@ import vercel from '@astrojs/vercel';
 
 import sitemap from '@astrojs/sitemap';
 import robotsTxt from 'astro-robots-txt';
+import { readdirSync } from 'node:fs';
 
-const site = process.env.SITE_URL || 'https://fruitfullseeds.eu.com';
+const site = process.env.SITE_URL || 'https://fruitfullseeds.com';
+const base = '/eu';
+const geneticsPages = readdirSync(new URL('./src/content/genetics', import.meta.url))
+  .filter((file) => file.endsWith('.mdx'))
+  .map((file) => new URL(`${base}/genetics/${file.replace(/\.mdx$/, '')}`, site).href);
 
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
   site,
+  base,
 
   vite: {
     plugins: [tailwindcss()],
@@ -26,7 +32,10 @@ export default defineConfig({
 
   integrations: [
     mdx(),
-    sitemap(),
+    sitemap({
+      customPages: geneticsPages,
+      filter: (page) => !page.includes(`${base}/admin/`) && !page.includes(`${base}/auth/`),
+    }),
     robotsTxt(),
   ],
   adapter: vercel({

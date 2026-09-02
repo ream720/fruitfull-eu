@@ -7,12 +7,13 @@ import Gallery from "../../components/Gallery.astro";
 import ReleaseCountdown from "../../components/ReleaseCountdown.astro";
 import fs from 'node:fs';
 import path from 'node:path';
+import { withBase } from '../../lib/base-path';
 
 // In SSR mode getStaticPaths is ignored — read slug from params instead
 const { slug } = Astro.params;
 
 if (!slug) {
-  return Astro.redirect("/genetics");
+  return Astro.redirect(withBase("/genetics"));
 }
 
 const entry = await getEntry("genetics", slug);
@@ -52,8 +53,8 @@ const matchingFile = spriteFiles.find(file => {
 
 // Fallback to missing bow if no specific sprite found
 const spriteUrl = matchingFile
-  ? `/images/fruitfull/sprites/${matchingFile}`
-  : '/images/fruitfull/sprites/sprite_missing_bow.png';
+  ? withBase(`/images/fruitfull/sprites/${matchingFile}`)
+  : withBase('/images/fruitfull/sprites/sprite_missing_bow.png');
 ---
 
 <BaseLayout
@@ -61,7 +62,7 @@ const spriteUrl = matchingFile
   description={data.metaDescription || `${data.name} - ${data.lineage} | Fruitfull Seeds`}
   showBackLink={true}
   backLinkText="Back to Genetics"
-  backLinkHref={data.category === "breeder_cut" ? "/genetics#breeder-cuts" : data.category === "trainer" ? "/genetics#trainer" : "/genetics"}
+  backLinkHref={withBase(data.category === "breeder_cut" ? "/genetics#breeder-cuts" : data.category === "trainer" ? "/genetics#trainer" : "/genetics")}
 >
   <article class="max-w-5xl mx-auto">
     <!-- Hero Section -->
@@ -79,7 +80,7 @@ const spriteUrl = matchingFile
               <div class="flip-card-front">
                 <div class="card-image-wrapper">
                   <Image
-                    src={data.heroImage}
+                    src={withBase(data.heroImage)}
                     alt={data.name}
                     width={800}
                     height={800}
@@ -107,7 +108,7 @@ const spriteUrl = matchingFile
               <!-- Back: Collectible Card Stats -->
               <div class="flip-card-back">
                 <div class="card-back-logo">
-                  <Image src="/images/fruitfull/logo/Logo2_new.png" alt="Fruitfull Seeds" width={400} height={400} />
+                  <Image src={withBase('/images/fruitfull/logo/Logo2_new.png')} alt="Fruitfull Seeds" width={400} height={400} />
                 </div>
                 <div class="card-back-content">
                   <h3 class="card-back-title">{data.name}</h3>
@@ -247,7 +248,7 @@ const spriteUrl = matchingFile
                 >
                   {w.logo ? (
                     <img
-                      src={w.logo}
+                      src={withBase(w.logo)}
                       alt={w.name}
                       class="h-10 w-auto object-contain rounded-md hover:opacity-80 transition-opacity"
                     />
@@ -270,7 +271,7 @@ const spriteUrl = matchingFile
       <div class="flex justify-between items-center">
         {prevEntry ? (
           <a
-            href={`/genetics/${prevEntry.slug}`}
+            href={withBase(`/genetics/${prevEntry.slug}`)}
             class="group flex items-center space-x-3 px-4 py-3 bg-ff-bg-secondary hover:bg-ff-grape-vivid/10 rounded-ff-lg border border-ff-border-subtle hover:border-ff-grape-vivid transition-all"
           >
             <svg class="w-5 h-5 text-ff-grape-vivid group-hover:text-ff-grape-neon transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,7 +288,7 @@ const spriteUrl = matchingFile
 
         {nextEntry ? (
           <a
-            href={`/genetics/${nextEntry.slug}`}
+            href={withBase(`/genetics/${nextEntry.slug}`)}
             class="group flex items-center space-x-3 px-4 py-3 bg-ff-bg-secondary hover:bg-ff-grape-vivid/10 rounded-ff-lg border border-ff-border-subtle hover:border-ff-grape-vivid transition-all"
           >
             <div class="text-right">

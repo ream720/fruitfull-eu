@@ -4,6 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { EUROPE_SHIPPING_COUNTRIES } from '../lib/countries';
 import { formatMoney, getDropStatus, statusLabel, type PublicDrop } from '../lib/drops';
 import { getPublicDrops } from '../lib/supabase-rest';
+import { withBase } from '../lib/base-path';
 
 export const prerender = false;
 
@@ -11,7 +12,9 @@ let drops: PublicDrop[] = [];
 let catalogUnavailable = false;
 try { drops = await getPublicDrops(); } catch { catalogUnavailable = true; }
 
-const previewMode = import.meta.env.DEV && Astro.url.searchParams.get('preview') === '1';
+const previewState = Astro.url.searchParams.get('preview');
+const previewMode = import.meta.env.DEV && (previewState === '1' || previewState === 'confirmation');
+const confirmationPreviewMode = import.meta.env.DEV && previewState === 'confirmation';
 if (previewMode) {
   const entries = await getCollection('drops');
   drops = entries.map(({ data }) => ({
@@ -22,6 +25,7 @@ if (previewMode) {
     drop_items: data.items.map((item) => ({
       id: item.id, drop_id: data.id, sku: item.sku, name: item.name,
       item_type: item.type, artist: item.artist, image_path: item.image,
+      secondary_image_path: item.secondaryImage || null,
       description: item.description, amount_minor: item.amountMinor,
       stock_total: item.stockTotal, stock_available: item.stockTotal,
       max_per_order: item.maxPerOrder, active: true,
@@ -38,7 +42,7 @@ const visibleDrops = drops.filter((drop) => drop.active);
     <p class="eyebrow">Limited artist releases</p>
     <h1>Fruitfull Drops</h1>
     <p>Small batches, released when each artist’s work is ready. Choose from one drop at a time and complete payment within 48 hours to hold your reservation.</p>
-    {previewMode && <p class="preview-note">Local preview — placeholder inventory cannot be reserved.</p>}
+    {previewMode && <p class="preview-note">{confirmationPreviewMode ? 'Local confirmation preview — no reservation has been created.' : 'Local preview — this inactive draft cannot be reserved.'}</p>}
   </section>
 
   {catalogUnavailable && (
@@ -50,13 +54,15 @@ const visibleDrops = drops.filter((drop) => drop.active);
       <span aria-hidden="true" class="empty-icon">✦</span>
       <h2>The next drop is taking shape</h2>
       <p>There are no reservable items right now. Join the newsletter to hear when the next artist batch lands.</p>
-      <a class="primary-link" href="/#newsletter">Join the newsletter</a>
+      <a class="primary-link" href={withBase('/#newsletter')}>Join the newsletter</a>
     </section>
   ) : (
     <div class="drop-list">
       {visibleDrops.map((drop) => {
         const status = getDropStatus(drop);
         const availableItems = drop.drop_items.filter((item) => item.active);
+        const confirmationPreviewTotal = drop.shipping_amount_minor + (availableItems[0]?.amount_minor || 0);
+        const confirmationPreviewExpiry = new Date(new Date(drop.opens_at).getTime() + 48 * 60 * 60 * 1000).toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' });
         return (
           <article class="drop-card" data-drop-id={drop.id} data-currency={drop.currency} data-shipping={drop.shipping_amount_minor}>
             <header class="drop-header">
@@ -75,7 +81,12 @@ const visibleDrops = drops.filter((drop) => drop.active);
             <div class="item-grid">
               {availableItems.map((item) => (
                 <section class:list={['item-card', item.stock_available < 1 && 'item-sold-out']} data-item-id={item.id} data-price={item.amount_minor} data-stock={item.stock_available} data-max={item.max_per_order}>
-                  <div class="item-art"><img src={item.image_path} alt={`${item.name} artwork`} loading="lazy" /></div>
+                  <div class:list={['item-art', item.secondary_image_path && 'item-art-pair']}>
+                    <img src={withBase(item.image_path)} alt={`${item.name} primary pack artwork`} loading="lazy" />
+                    {item.secondary_image_path && (
+                      <img src={withBase(item.secondary_image_path)} alt={`${item.name} secondary pack artwork`} loading="lazy" />
+                    )}
+                  </div>
                   <div class="item-copy">
                     <p class="item-type">{item.item_type}</p>
                     <h3>{item.name}</h3>
@@ -98,7 +109,7 @@ const visibleDrops = drops.filter((drop) => drop.active);
             </div>
 
             {status === 'active' && (
-              <form class="reservation-form" novalidate>
+              <form class="reservation-form" novalidate hidden={confirmationPreviewMode}>
                 <div class="form-heading">
                   <div><p class="eyebrow">Your reservation</p><h3>Delivery and payment details</h3></div>
                   <div class="order-total" aria-live="polite"><span>Total</span><strong data-total>{formatMoney(drop.shipping_amount_minor, drop.currency)}</strong><small>Includes {formatMoney(drop.shipping_amount_minor, drop.currency)} shipping</small></div>
@@ -138,11 +149,48 @@ const visibleDrops = drops.filter((drop) => drop.active);
               </form>
             )}
             {status !== 'active' && <div class="inactive-message">{status === 'upcoming' ? 'Reservations will open at the time shown above.' : status === 'sold_out' ? 'Every item in this drop has been reserved.' : 'This reservation window has closed.'}</div>}
-            <section class="reservation-success" hidden data-success aria-live="polite">
-              <p class="eyebrow">Reservation held</p><h3>Keep this reference handy</h3>
-              <dl><div><dt>Reference</dt><dd data-success-reference></dd></div><div><dt>Total</dt><dd data-success-total></dd></div><div><dt>Payment deadline</dt><dd data-success-expiry></dd></div></dl>
-              <div class="payment-instructions"><strong>Payment instructions</strong><p data-success-instructions></p></div>
-              <p>We’ve also queued these details for delivery to your email.</p>
+            <section
+              class="reservation-success"
+              hidden={!confirmationPreviewMode}
+              data-success
+              role="status"
+              aria-live="polite"
+              aria-labelledby={`reservation-success-title-${drop.id}`}
+              tabindex="-1"
+            >
+              <div class="success-heading">
+                <span class="success-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m5 12 4 4L19 6" />
+                  </svg>
+                </span>
+                <div>
+                  <p class="eyebrow">Order received</p>
+                  <h3 id={`reservation-success-title-${drop.id}`}>Your packs are reserved</h3>
+                  <p class="success-summary">Complete the PayPal request by the deadline below to keep your reservation active.</p>
+                </div>
+              </div>
+
+              <div class="screenshot-reminder" role="note">
+                <span class="reminder-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 4 16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-3h5Z" />
+                    <circle cx="12" cy="13" r="3.25" />
+                  </svg>
+                </span>
+                <div>
+                  <strong>Take a screenshot before you leave this page</strong>
+                  <p>No confirmation email will be sent. Keep a screenshot showing your reference, total, payment deadline, and payment instructions.</p>
+                </div>
+              </div>
+
+              <dl class="confirmation-details">
+                <div><dt>Reference</dt><dd class="confirmation-reference" data-success-reference>{confirmationPreviewMode ? 'FFEU-PREVIEW123' : ''}</dd></div>
+                <div><dt>Total</dt><dd data-success-total>{confirmationPreviewMode ? formatMoney(confirmationPreviewTotal, drop.currency) : ''}</dd></div>
+                <div><dt>Payment deadline</dt><dd data-success-expiry>{confirmationPreviewMode ? confirmationPreviewExpiry : ''}</dd></div>
+              </dl>
+              <div class="payment-instructions"><strong>Payment instructions</strong><p data-success-instructions>{confirmationPreviewMode ? 'We will send a PayPal payment request to the email or username supplied with the reservation.' : ''}</p></div>
+              <p class="success-footer">Keep this screenshot until your order has arrived.</p>
             </section>
           </article>
         );
@@ -154,11 +202,13 @@ const visibleDrops = drops.filter((drop) => drop.active);
 {turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
 <script>
+  import { withBase } from '../lib/base-path';
+
   const money = (minor: number, currency: string) => new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(minor / 100);
   document.querySelectorAll<HTMLElement>('.drop-card').forEach((drop) => {
     const form = drop.querySelector<HTMLFormElement>('.reservation-form');
     if (!form) return;
-    const currency = drop.dataset.currency || 'USD';
+    const currency = drop.dataset.currency || 'EUR';
     const shipping = Number(drop.dataset.shipping || 0);
     const items = Array.from(drop.querySelectorAll<HTMLElement>('[data-item-id]'));
     const selectedItems = () => items.map((item) => ({
@@ -206,7 +256,7 @@ const visibleDrops = drops.filter((drop) => drop.active);
         privacyAccepted: fields.get('privacyAccepted') === 'on', reservationTermsAccepted: fields.get('reservationTermsAccepted') === 'on',
         turnstileToken, idempotencyKey, website: fields.get('website'),
       };
-      const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => null);
+      const response = await fetch(withBase('/api/reservations'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => null);
       const result = await response?.json().catch(() => ({}));
       if (response?.ok) {
         form.hidden = true;
@@ -215,7 +265,9 @@ const visibleDrops = drops.filter((drop) => drop.active);
         const set = (selector: string, value: string) => { const node = drop.querySelector<HTMLElement>(selector); if (node) node.textContent = value; };
         set('[data-success-reference]', result.reference || ''); set('[data-success-total]', money(result.totalMinor, result.currency));
         set('[data-success-expiry]', new Date(result.expiresAt).toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' }));
-        set('[data-success-instructions]', result.paymentInstructions || 'Please check your email for payment instructions.'); success?.focus();
+        set('[data-success-instructions]', result.paymentInstructions || 'The team will send the PayPal request using the account details you provided.');
+        success?.focus({ preventScroll: true });
+        success?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       } else {
         const messages: Record<string, string> = { availability_changed: 'Availability changed while you were reserving. Refresh the page and choose again.', active_reservation_exists: 'This email or phone already has a live reservation for this drop.', security_check_failed: 'The security check expired. Please complete it again.', validation_failed: 'Check the form and try again.' };
         if (status) status.textContent = messages[result?.error] || 'Reservations are temporarily unavailable. Please try again.';
@@ -251,13 +303,34 @@ const visibleDrops = drops.filter((drop) => drop.active);
   .drop-meta { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }.drop-meta dt { color: var(--ff-text-muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; }.drop-meta dd { margin-top: .3rem; font-size: .85rem; font-weight: 700; }
   .item-grid { display: grid; gap: 1px; background: var(--ff-border-subtle); }
   .item-card { display: grid; grid-template-columns: minmax(110px, 190px) 1fr; gap: 1.25rem; background: var(--ff-bg-secondary); padding: 1.25rem; }
-  .item-art { aspect-ratio: 1; overflow: hidden; border-radius: 1rem; background: var(--ff-bg-primary); }.item-art img { width: 100%; height: 100%; object-fit: contain; }.item-sold-out .item-art { filter: grayscale(1); opacity: .55; }
+  .item-art { aspect-ratio: 1; overflow: hidden; border-radius: 1rem; background: var(--ff-bg-primary); }.item-art img { width: 100%; height: 100%; object-fit: contain; }.item-art-pair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; padding: .5rem; }.item-sold-out .item-art { filter: grayscale(1); opacity: .55; }
   .item-copy h3 { margin-top: .35rem; color: var(--ff-resin-cream); font-size: 1.15rem; font-weight: 900; }.item-copy > p:not(.item-type):not(.artist):not(.limit) { margin-top: .7rem; color: var(--ff-text-secondary); font-size: .88rem; line-height: 1.6; }.artist { color: var(--ff-resin-gold); font-size: .78rem; margin-top: .25rem; }
   .item-bottom { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 1.2rem; }.item-bottom strong,.item-bottom small { display: block; }.item-bottom small,.limit { color: var(--ff-text-muted); font-size: .7rem; margin-top: .25rem; }
   .quantity { display: flex; align-items: center; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; overflow: hidden; }.quantity button { width: 44px; height: 44px; font-size: 1.25rem; background: var(--ff-bg-tertiary); }.quantity input { width: 42px; height: 44px; border-inline: 1px solid var(--ff-border-subtle); background: var(--ff-bg-primary); color: white; text-align: center; appearance: textfield; }
   .reservation-form { border-top: 1px solid var(--ff-border-subtle); padding: clamp(1.25rem,4vw,2rem); }.form-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }.form-heading h3 { margin-top: .5rem; font-size: 1.15rem; font-weight: 900; }.order-total { min-width: 9rem; text-align: right; }.order-total span,.order-total small { display: block; color: var(--ff-text-muted); font-size: .7rem; }.order-total strong { display: block; color: var(--ff-lime-bright); font-size: 1.25rem; }.basket-hint { margin-top: 1rem; color: var(--ff-text-secondary); font-size: .85rem; }
   fieldset { margin-top: 2rem; padding: 0; border: 0; } legend { margin-bottom: 1rem; color: var(--ff-resin-cream); font-size: .8rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }.form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }.wide { grid-column: 1/-1; } label > span { display: block; margin-bottom: .45rem; font-size: .8rem; font-weight: 800; } label small { color: var(--ff-text-muted); font-weight: 500; }
-  input:not([type='checkbox']), select, textarea { width: 100%; min-height: 48px; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-primary); color: var(--ff-text-primary); padding: .75rem; } textarea { resize: vertical; }.payment-method { min-height: 48px; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-tertiary); padding: .75rem; }.payment-method > span { display:block; color:var(--ff-text-muted); font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }.payment-method strong { display:block; margin-top:.2rem; color:var(--ff-resin-cream); }.payment-method p,.field-help { display:block; margin-top:.35rem; color:var(--ff-text-muted); font-size:.72rem; line-height:1.5; }.agreements { display: grid; gap: .9rem; margin-top: 2rem; }.agreements label { display: grid; grid-template-columns: 24px 1fr; align-items: start; gap: .65rem; color: var(--ff-text-secondary); line-height: 1.55; }.agreements input { width: 22px; height: 22px; accent-color: var(--ff-grape-vivid); }.honeypot { position: absolute; left: -9999px; }.cf-turnstile { margin-top: 1.5rem; }.reserve-button { width: 100%; margin-top: 1.5rem; border: 0; }.reserve-button:disabled { opacity: .55; cursor: not-allowed; }.form-status { min-height: 1.5rem; margin-top: .8rem; color: var(--ff-status-upcoming); font-size: .85rem; }.inactive-message { padding: 1.5rem; color: var(--ff-text-secondary); text-align: center; }.reservation-success { padding: 2rem; border-top: 1px solid var(--ff-border-subtle); }.reservation-success h3 { margin-top: .5rem; font-size: 1.2rem; font-weight: 900; }.reservation-success dl { display: grid; gap: .75rem; margin-top: 1.5rem; }.reservation-success dl div { display: flex; justify-content: space-between; gap: 1rem; }.reservation-success dt { color: var(--ff-text-muted); }.reservation-success dd { text-align: right; font-weight: 800; }.payment-instructions { margin-block: 1.5rem; border-radius: .75rem; background: var(--ff-bg-primary); padding: 1rem; }.payment-instructions p { margin-top: .5rem; white-space: pre-wrap; color: var(--ff-text-secondary); }
-  @media (min-width: 700px) { .drop-header { grid-template-columns: 1fr auto; }.item-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.item-card { grid-template-columns: 1fr; }.item-card:only-child { grid-column:1/-1; grid-template-columns:minmax(160px,220px) 1fr; }.item-art { max-height: 230px; } }
+  input:not([type='checkbox']), select, textarea { width: 100%; min-height: 48px; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-primary); color: var(--ff-text-primary); padding: .75rem; } textarea { resize: vertical; }.payment-method { min-height: 48px; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-tertiary); padding: .75rem; }.payment-method > span { display:block; color:var(--ff-text-muted); font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }.payment-method strong { display:block; margin-top:.2rem; color:var(--ff-resin-cream); }.payment-method p,.field-help { display:block; margin-top:.35rem; color:var(--ff-text-muted); font-size:.72rem; line-height:1.5; }.agreements { display: grid; gap: .9rem; margin-top: 2rem; }.agreements label { display: grid; grid-template-columns: 24px 1fr; align-items: start; gap: .65rem; color: var(--ff-text-secondary); line-height: 1.55; }.agreements input { width: 22px; height: 22px; accent-color: var(--ff-grape-vivid); }.honeypot { position: absolute; left: -9999px; }.cf-turnstile { margin-top: 1.5rem; }.reserve-button { width: 100%; margin-top: 1.5rem; border: 0; }.reserve-button:disabled { opacity: .55; cursor: not-allowed; }.form-status { min-height: 1.5rem; margin-top: .8rem; color: var(--ff-status-upcoming); font-size: .85rem; }.inactive-message { padding: 1.5rem; color: var(--ff-text-secondary); text-align: center; }
+  .reservation-success { scroll-margin-top: 2rem; padding: clamp(1.25rem,4vw,2rem); border-top: 1px solid var(--ff-border-subtle); background: radial-gradient(circle at top left, rgba(125,255,63,.09), transparent 42%); outline: none; }
+  .reservation-success:focus-visible { box-shadow: inset 0 0 0 2px var(--ff-lime-bright); }
+  .success-heading { display: flex; align-items: flex-start; gap: 1rem; }
+  .success-icon { width: 3.25rem; height: 3.25rem; flex: 0 0 auto; display: grid; place-items: center; border: 2px solid var(--ff-lime-bright); border-radius: 50%; color: var(--ff-lime-bright); background: rgba(125,255,63,.1); box-shadow: 0 0 24px rgba(125,255,63,.13); }
+  .success-icon svg { width: 1.65rem; height: 1.65rem; }
+  .reservation-success h3 { margin-top: .4rem; color: var(--ff-resin-cream); font-size: clamp(1.2rem,4vw,1.5rem); font-weight: 900; }
+  .success-summary { max-width: 40rem; margin-top: .55rem; color: var(--ff-text-secondary); font-size: .9rem; line-height: 1.6; }
+  .screenshot-reminder { display: grid; grid-template-columns: 2rem 1fr; gap: .85rem; margin-top: 1.5rem; padding: 1rem; border: 2px solid var(--ff-status-upcoming); border-radius: 1rem; color: var(--ff-resin-cream); background: rgba(255,204,77,.09); }
+  .reminder-icon { width: 2rem; height: 2rem; display: grid; place-items: center; color: var(--ff-status-upcoming); }
+  .reminder-icon svg { width: 1.65rem; height: 1.65rem; }
+  .screenshot-reminder strong { display: block; font-size: .95rem; line-height: 1.4; }
+  .screenshot-reminder p { margin-top: .35rem; color: var(--ff-text-secondary); font-size: .82rem; line-height: 1.6; }
+  .confirmation-details { display: grid; gap: .75rem; margin-top: 1.5rem; }
+  .confirmation-details div { min-width: 0; padding: .9rem 1rem; border: 1px solid var(--ff-border-subtle); border-radius: .75rem; background: var(--ff-bg-primary); }
+  .confirmation-details dt { color: var(--ff-text-muted); font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .confirmation-details dd { margin-top: .35rem; overflow-wrap: anywhere; color: var(--ff-text-primary); font-size: .9rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .confirmation-reference { color: var(--ff-lime-bright) !important; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .04em; }
+  .payment-instructions { margin-block: 1rem; border: 1px solid var(--ff-grape-vivid); border-radius: .75rem; background: rgba(122,92,255,.08); padding: 1rem; }
+  .payment-instructions strong { color: var(--ff-resin-cream); font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; }
+  .payment-instructions p { margin-top: .5rem; white-space: pre-wrap; color: var(--ff-text-secondary); line-height: 1.6; }
+  .success-footer { color: var(--ff-text-muted); font-size: .78rem; line-height: 1.5; text-align: center; }
+  @media (min-width: 700px) { .drop-header { grid-template-columns: 1fr auto; }.item-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.item-card { grid-template-columns: 1fr; }.item-card:only-child { grid-column:1/-1; grid-template-columns:minmax(160px,220px) 1fr; }.item-art { max-height: 230px; }.confirmation-details { grid-template-columns: repeat(3,minmax(0,1fr)); } }
   @media (max-width: 540px) { .item-card { grid-template-columns: 1fr; }.form-grid { grid-template-columns: 1fr; }.wide { grid-column: auto; }.form-heading { display: grid; }.order-total { text-align: left; }.item-bottom { align-items: center; } }
 </style>

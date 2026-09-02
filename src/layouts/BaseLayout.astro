@@ -3,6 +3,7 @@ import { Image } from 'astro:assets';
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import { withBase, withoutBase } from '../lib/base-path';
 
 interface Props {
   title: string;
@@ -17,18 +18,18 @@ const {
   description = "Fruitfull Seeds EU - Premium Genetics",
   showBackLink = false,
   backLinkText = "Back",
-  backLinkHref = "/"
+  backLinkHref = withBase("/")
 } = Astro.props;
 
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin);
-const originalSiteUrl = new URL(Astro.url.pathname, 'https://fruitfullseeds.com');
-const currentPath = Astro.url.pathname;
+const currentPath = withoutBase(Astro.url.pathname);
+const canonicalUrl = new URL(withBase(currentPath), Astro.site ?? Astro.url.origin);
+const originalSiteUrl = new URL(currentPath, 'https://fruitfullseeds.com');
 const navItems = [
-  { href: '/drops', label: 'Drops', match: '/drops' },
-  { href: '/genetics', label: 'EU Genetics', match: '/genetics' },
-  { href: '/about', label: 'About', match: '/about' },
-  { href: '/#newsletter', label: 'Newsletter', match: '/newsletter' },
-  { href: '/resources', label: 'Resources', match: '/resources' },
+  { href: withBase('/drops'), label: 'Drops', match: '/drops' },
+  { href: withBase('/genetics'), label: 'EU Genetics', match: '/genetics' },
+  { href: withBase('/about'), label: 'About', match: '/about' },
+  { href: withBase('/#newsletter'), label: 'Newsletter', match: '/newsletter' },
+  { href: withBase('/resources'), label: 'Resources', match: '/resources' },
 ];
 ---
 
@@ -42,7 +43,7 @@ const navItems = [
     <link rel="alternate" hreflang="en-GB" href={canonicalUrl} />
     <link rel="alternate" hreflang="en-US" href={originalSiteUrl} />
     <link rel="alternate" hreflang="x-default" href={originalSiteUrl} />
-    <link rel="icon" type="image/png" href="/images/fruitfull/logo/Logo2_new.png" />
+    <link rel="icon" type="image/png" href={withBase('/images/fruitfull/logo/Logo2_new.png')} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,8 +56,8 @@ const navItems = [
       <header class="py-3">
         <nav class="flex items-center justify-between" aria-label="Main navigation">
           <div class="flex items-center gap-4 md:gap-6">
-            <a href="/" class="block transition-transform hover:scale-105 shrink-0" aria-label="Fruitfull Seeds EU home">
-              <Image src="/images/fruitfull/logo/Logo2_new.png" alt="Fruitfull Seeds" width={64} height={64} class="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain" loading="eager" />
+            <a href={withBase('/')} class="block transition-transform hover:scale-105 shrink-0" aria-label="Fruitfull Seeds EU home">
+              <Image src={withBase('/images/fruitfull/logo/Logo2_new.png')} alt="Fruitfull Seeds" width={64} height={64} class="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain" loading="eager" />
             </a>
             <div class="hidden md:flex items-center gap-5 text-sm whitespace-nowrap">
               {navItems.map((item) => {
@@ -140,7 +141,7 @@ const navItems = [
 
            <a href="https://discord.com/users/353663224488525825" target="_blank" rel="noopener noreferrer" class="group relative inline-flex flex-col items-center gap-4 transition-transform duration-300 hover:-translate-y-1">
              <div class="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center shadow-lg group-hover:shadow-[0_0_25px_rgba(255,0,255,0.6)] transition-all duration-300 border-2 border-transparent group-hover:border-[#ff00ff]/50">
-                <img src="/images/fruitfull/logo/parzival_avatar.jpg" alt="Parzival" class="w-full h-full object-cover" />
+                <img src={withBase('/images/fruitfull/logo/parzival_avatar.jpg')} alt="Parzival" class="w-full h-full object-cover" />
              </div>
              <div class="text-center">
                <span class="block text-xl font-bold text-ff-text-primary tracking-wide group-hover:text-ff-grape-neon transition-colors">Parzival 6⭐</span>

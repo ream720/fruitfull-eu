@@ -1,9 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getAdminSession } from '../../lib/admin-auth';
+import { withBase } from '../../lib/base-path';
 
 export const prerender = false;
-if (await getAdminSession(Astro.cookies)) return Astro.redirect('/admin/orders');
+if (await getAdminSession(Astro.cookies)) return Astro.redirect(withBase('/admin/orders'));
 Astro.response.headers.set('Cache-Control', 'no-store');
 ---
 
@@ -22,6 +23,8 @@ Astro.response.headers.set('Cache-Control', 'no-store');
 </BaseLayout>
 
 <script>
+  import { withBase } from '../../lib/base-path';
+
   const form = document.querySelector<HTMLFormElement>('#login-form');
   const status = document.querySelector<HTMLElement>('#login-status');
   form?.addEventListener('submit', async (event) => {
@@ -31,7 +34,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
     if (!email?.checkValidity()) { email?.reportValidity(); return; }
     if (button) button.disabled = true;
     if (status) status.textContent = 'Sending…';
-    const response = await fetch('/api/admin/magic-link', {
+    const response = await fetch(withBase('/api/admin/magic-link'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.value }),
     }).catch(() => null);
     if (status) status.textContent = response?.ok

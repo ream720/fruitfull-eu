@@ -1,5 +1,6 @@
 ---
 import { Image } from 'astro:assets';
+import { withBase } from '../lib/base-path';
 
 interface Props {
   images: string[];
@@ -14,12 +15,12 @@ const { images = [], videos = [], productName, galleryAlt = [], videoAlt = [] } 
 const mediaItems = [
   ...videos.map((src, i) => ({
     type: 'video',
-    src,
+    src: withBase(src),
     alt: videoAlt[i] || `${productName} video showcase`
   })),
   ...images.map((src, i) => ({
     type: 'image',
-    src,
+    src: withBase(src),
     alt: galleryAlt[i] || `${productName} gallery image`
   }))
 ];
@@ -83,7 +84,7 @@ const mediaItems = [
 
     <!-- Loading Spinner -->
     <div id="modal-loading" class="absolute inset-0 flex items-center justify-center z-40 hidden pointer-events-none">
-        <Image src="/images/fruitfull/logo/Logo2_new.png" width={80} height={80} class="w-20 h-20 animate-spin-slow opacity-80" alt="Loading..." />
+        <Image src={withBase('/images/fruitfull/logo/Logo2_new.png')} width={80} height={80} class="w-20 h-20 animate-spin-slow opacity-80" alt="Loading..." />
     </div>
 
     <!-- Image Display Area -->

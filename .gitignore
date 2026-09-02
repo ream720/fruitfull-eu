@@ -9,6 +9,7 @@ node_modules/
 # local tooling
 .vscode/
 .vercel/
+supabase/.temp/
 
 # logs
 npm-debug.log*

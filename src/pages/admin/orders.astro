@@ -1,11 +1,12 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getAdminSession } from '../../lib/admin-auth';
+import { withBase } from '../../lib/base-path';
 
 export const prerender = false;
 Astro.response.headers.set('Cache-Control', 'no-store, private');
 const session = await getAdminSession(Astro.cookies);
-if (!session) return Astro.redirect('/admin/login');
+if (!session) return Astro.redirect(withBase('/admin/login'));
 ---
 
 <BaseLayout title="Order admin | Fruitfull Seeds EU" description="Fruitfull Seeds EU order administration.">
@@ -56,6 +57,8 @@ if (!session) return Astro.redirect('/admin/login');
 </BaseLayout>
 
 <script>
+  import { withBase } from '../../lib/base-path';
+
   type Order = Record<string, any>;
   let orders: Order[] = [];
   let selected: Order | null = null;
@@ -80,8 +83,8 @@ if (!session) return Astro.redirect('/admin/login');
     if (statusLine) statusLine.textContent = 'Loading orders…';
     const fields = new FormData(filters || undefined);
     const query = new URLSearchParams({ page: String(page), search: String(fields.get('search') || ''), status: String(fields.get('status') || ''), sort: String(fields.get('sort') || 'newest') });
-    const response = await fetch(`/api/admin/orders?${query}`).catch(() => null);
-    if (response?.status === 401) { location.href = '/admin/login'; return; }
+    const response = await fetch(`${withBase('/api/admin/orders')}?${query}`).catch(() => null);
+    if (response?.status === 401) { location.href = withBase('/admin/login'); return; }
     const result = await response?.json().catch(() => null);
     if (!response?.ok || !result) { if (statusLine) statusLine.textContent = 'Orders are temporarily unavailable.'; return; }
     orders = result.orders; total = result.total; renderTable();
@@ -130,7 +133,7 @@ if (!session) return Astro.redirect('/admin/login');
     if (action === 'anonymize' && !confirm('Permanently remove this customer’s personal data? Totals and audit history will remain.')) return;
     if (action === 'cancel' && !confirm('Cancel this order and release its inventory?')) return;
     const alert = $<HTMLElement>('#detail-alert'); if (alert) alert.textContent = 'Saving…';
-    const response = await fetch(`/api/admin/orders/${selected.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, version: selected.version, payload }) }).catch(() => null);
+    const response = await fetch(withBase(`/api/admin/orders/${selected.id}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, version: selected.version, payload }) }).catch(() => null);
     const result = await response?.json().catch(() => null);
     if (!response?.ok) { if (alert) alert.textContent = response?.status === 409 ? 'Another administrator changed this order. It has been refreshed.' : `Could not update: ${label(result?.error || 'request failed')}.`; if (response?.status === 409) await loadOrders(selected.id); return; }
     if (alert) alert.textContent = 'Order updated.'; await loadOrders(selected.id);
@@ -141,7 +144,7 @@ if (!session) return Astro.redirect('/admin/login');
   $('#close-detail')?.addEventListener('click', () => { if (detail) detail.hidden = true; selected = null; });
   detail?.addEventListener('click', (event) => { const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-action]'); if (!button?.dataset.action) return; if (button.dataset.action === 'mark_shipped') { const form = $<HTMLFormElement>('[data-action-form="update_tracking"]'); mutate(button.dataset.action, form ? Object.fromEntries(new FormData(form)) : {}); } else mutate(button.dataset.action); });
   detail?.querySelectorAll<HTMLFormElement>('[data-action-form]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); if (!form.reportValidity()) return; const payload = Object.fromEntries(new FormData(form)); mutate(form.dataset.actionForm || '', payload); if (form.dataset.actionForm === 'add_note' || form.dataset.actionForm === 'cancel') form.reset(); }));
-  $('#logout')?.addEventListener('click', async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/admin/login'; });
+  $('#logout')?.addEventListener('click', async () => { await fetch(withBase('/api/admin/logout'), { method: 'POST' }); location.href = withBase('/admin/login'); });
   loadOrders();
 </script>
 

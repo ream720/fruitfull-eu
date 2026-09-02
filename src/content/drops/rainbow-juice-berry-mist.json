@@ -1,0 +1,28 @@
+{
+  "id": "first-eu-drop-2026",
+  "slug": "rainbow-juice-berry-mist",
+  "title": "First EU Drop: Rainbow Juice + Berry Mist",
+  "description": "The first Fruitfull Seeds European release pairs Rainbow Juice and Berry Mist in one bundle.",
+  "opensAt": "2026-10-31T12:00:00-04:00",
+  "currency": "EUR",
+  "shippingAmountMinor": 1000,
+  "paymentMethods": ["PayPal"],
+  "paymentInstructions": "We will send a PayPal payment request to the email or username supplied with the reservation.",
+  "active": false,
+  "items": [
+    {
+      "id": "rainbow-juice-berry-mist-bundle",
+      "sku": "FFEU-RJBM-2026-001",
+      "name": "Rainbow Juice + Berry Mist Bundle",
+      "type": "Seed bundle",
+      "artist": "Fruitfull Seeds",
+      "image": "/images/genetics/rainbow-juice/hero.png",
+      "secondaryImage": "/images/genetics/berry-mist/hero.png",
+      "description": "One Rainbow Juice seed pack and one Berry Mist seed pack. Final seed counts will be added after confirmation.",
+      "amountMinor": 15000,
+      "stockTotal": 50,
+      "maxPerOrder": 5,
+      "active": false
+    }
+  ]
+}

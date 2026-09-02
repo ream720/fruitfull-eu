@@ -1,9 +1,11 @@
 import type { AstroCookies } from "astro";
 import { getSupabaseAuthConfig } from "./supabase-rest";
+import { BASE_PATH, withBase } from "./base-path";
 
 const ACCESS_COOKIE = "ff_admin_access";
 const REFRESH_COOKIE = "ff_admin_refresh";
 const VERIFIER_COOKIE = "ff_admin_pkce";
+const COOKIE_PATH = BASE_PATH || "/";
 
 type SupabaseUser = { id: string; email?: string };
 export type AdminSession = { userId: string; email: string; accessToken: string };
@@ -12,7 +14,7 @@ const cookieOptions = () => ({
   httpOnly: true,
   secure: import.meta.env.PROD,
   sameSite: "lax" as const,
-  path: "/",
+  path: COOKIE_PATH,
 });
 
 const authHeaders = () => {
@@ -49,10 +51,10 @@ const saveTokens = (cookies: AstroCookies, payload: { access_token: string; refr
 };
 
 export const clearAdminSession = (cookies: AstroCookies) => {
-  for (const name of [ACCESS_COOKIE, REFRESH_COOKIE, VERIFIER_COOKIE]) cookies.delete(name, { path: "/" });
+  for (const name of [ACCESS_COOKIE, REFRESH_COOKIE, VERIFIER_COOKIE]) cookies.delete(name, { path: COOKIE_PATH });
 };
 
-export const requestAdminMagicLink = async (email: string, cookies: AstroCookies, origin: string) => {
+export const requestAdminMagicLink = async (email: string, cookies: AstroCookies) => {
   const normalized = email.trim().toLowerCase();
   if (!isAdminEmail(normalized)) return;
 
@@ -60,7 +62,8 @@ export const requestAdminMagicLink = async (email: string, cookies: AstroCookies
   if (!url) throw new Error("supabase_auth_not_configured");
   const verifier = randomVerifier();
   const challenge = await sha256Challenge(verifier);
-  const redirectTo = `${origin}/auth/callback`;
+  const siteOrigin = String(import.meta.env.SITE_URL || "https://fruitfullseeds.com").replace(/\/+$/, "");
+  const redirectTo = new URL(withBase("/auth/callback"), `${siteOrigin}/`).toString();
   const response = await fetch(`${url}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
     method: "POST",
     headers: authHeaders(),
@@ -87,7 +90,7 @@ export const exchangeAdminCode = async (code: string, cookies: AstroCookies) => 
   const payload = await response.json().catch(() => null);
   if (!response.ok || !payload?.access_token || !payload?.refresh_token) throw new Error("invalid_auth_callback");
   saveTokens(cookies, payload);
-  cookies.delete(VERIFIER_COOKIE, { path: "/" });
+  cookies.delete(VERIFIER_COOKIE, { path: COOKIE_PATH });
 };
 
 const fetchUser = async (accessToken: string): Promise<SupabaseUser | null> => {
