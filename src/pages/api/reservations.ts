@@ -10,7 +10,7 @@ const json = (body: unknown, status: number) => new Response(JSON.stringify(body
 });
 
 const verifyTurnstile = async (token: string, idempotencyKey: string) => {
-  const secret = import.meta.env.TURNSTILE_SECRET_KEY || "";
+  const secret = process.env.TURNSTILE_SECRET_KEY || import.meta.env.TURNSTILE_SECRET_KEY || "";
   if (!secret) throw new Error("turnstile_not_configured");
   const body = new FormData();
   body.set("secret", secret);

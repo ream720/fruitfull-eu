@@ -40,7 +40,7 @@ test('EU routes and assets stay beneath the configured base path', () => {
   assert.equal(basePath.withBase('/'), '/eu/');
   assert.equal(basePath.withBase('/genetics/example'), '/eu/genetics/example');
   assert.equal(basePath.withBase('/eu/genetics/example'), '/eu/genetics/example');
-  assert.equal(basePath.withBase('/#newsletter'), '/eu/#newsletter');
+  assert.equal(basePath.withBase('/#details'), '/eu/#details');
   assert.equal(basePath.withBase('https://cdn.example.com/image.png'), 'https://cdn.example.com/image.png');
   assert.equal(basePath.withoutBase('/eu/genetics/example'), '/genetics/example');
   assert.equal(basePath.withoutBase('/eu'), '/');

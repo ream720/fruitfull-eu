@@ -30,14 +30,14 @@ The upstream is the stable production domain shown in the EU project's Vercel se
 - Supabase redirect allow list: `https://fruitfullseeds.com/eu/auth/callback`
 - Cloudflare Turnstile allowed hostname: `fruitfullseeds.com`
 
-Keep all existing EU secrets, Supabase values, the dedicated Brevo list ID, and administrator allow-list values unchanged. Brevo is collection-only for the initial launch; no DOI or order-email template IDs are required.
+Keep all existing EU secrets, Supabase values, and administrator allow-list values unchanged.
 
 ## Preview validation
 
 1. Deploy the EU branch and record its preview hostname.
 2. Point a core-site preview rewrite at that preview hostname using the same prefix-removing pattern.
 3. Test the site through the core preview's `/eu/` URL. The EU preview URL by itself is only an upstream and is not the public routing surface.
-4. Verify navigation, static assets, Vercel image optimization, newsletter submission, reservations, Turnstile, admin authentication, canonical tags, alternate language links, and both sitemaps.
+4. Verify navigation, static assets, Vercel image optimization, reservations, Turnstile, admin authentication, canonical tags, alternate language links, and both sitemaps.
 
 ## Production order
 

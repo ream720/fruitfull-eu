@@ -33,7 +33,7 @@ if (previewMode) {
   }));
 }
 
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
+const turnstileSiteKey = process.env.PUBLIC_TURNSTILE_SITE_KEY || import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '';
 const visibleDrops = drops.filter((drop) => drop.active);
 ---
 
@@ -52,7 +52,7 @@ const visibleDrops = drops.filter((drop) => drop.active);
       <span aria-hidden="true" class="empty-icon">✦</span>
       <h2>The next drop is taking shape</h2>
       <p>There are no reservable items right now.</p>
-      <a class="primary-link" href={withBase('/#newsletter')}>Join the newsletter</a>
+      <a class="primary-link" href={withBase('/genetics')}>Browse EU genetics</a>
     </section>
   ) : (
     <div class="drop-list">

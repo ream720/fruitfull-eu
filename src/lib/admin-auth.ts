@@ -38,7 +38,7 @@ const sha256Challenge = async (verifier: string) => {
 };
 
 export const getAdminEmails = () =>
-  String(import.meta.env.ADMIN_EMAILS || "")
+  String(process.env.ADMIN_EMAILS || import.meta.env.ADMIN_EMAILS || "")
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
@@ -62,7 +62,7 @@ export const requestAdminMagicLink = async (email: string, cookies: AstroCookies
   if (!url) throw new Error("supabase_auth_not_configured");
   const verifier = randomVerifier();
   const challenge = await sha256Challenge(verifier);
-  const siteOrigin = String(import.meta.env.SITE_URL || "https://fruitfullseeds.com").replace(/\/+$/, "");
+  const siteOrigin = String(process.env.SITE_URL || import.meta.env.SITE_URL || "https://fruitfullseeds.com").replace(/\/+$/, "");
   const redirectTo = new URL(withBase("/auth/callback"), `${siteOrigin}/`).toString();
   const response = await fetch(`${url}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
     method: "POST",

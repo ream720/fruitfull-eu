@@ -10,14 +10,12 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-Fill in the required values in `.env` before testing newsletter signup, reservations, or admin authentication. The local `.env` file is ignored by Git. Node.js includes npm, so a separate npm installation is not required when a current Node.js installation is already present.
+Fill in the required values in `.env` before testing reservations or admin authentication. The local `.env` file is ignored by Git. Node.js includes npm, so a separate npm installation is not required when a current Node.js installation is already present.
 
 ## EU-specific configuration
 
 - Production URL: `https://fruitfullseeds.com/eu/`
 - Document language: `en-GB`
-- Newsletter: explicit consent with Brevo used only for contact collection
-- Newsletter contacts: dedicated list selected by `BREVO_LIST_ID`
 - Original US site: linked through `hreflang="en-US"`
 
 Set `SITE_URL=https://fruitfullseeds.com` in Vercel. Do not edit generated files in `dist/`.
@@ -27,15 +25,14 @@ Set `SITE_URL=https://fruitfullseeds.com` in Vercel. Do not edit generated files
 1. Push this directory to its own Git repository.
 2. Import that repository as a new Vercel project named `fruitfull-seeds-eu`.
 3. Add all variables from `.env.example` under Project Settings > Environment Variables for Production and Preview as appropriate.
-4. In Brevo, create a dedicated EU contact list and put its numeric ID in Vercel. No email template is required while Brevo remains collection-only.
-5. Keep this as a separate Vercel project and use its stable `fruitfull-seeds-eu.vercel.app` production alias as the upstream for the core site's `/eu` rewrites. The core rewrite removes `/eu` before forwarding; Astro's `base` setting adds it to every public URL returned to the browser.
-6. Deploy, then verify `/eu/robots.txt`, `/eu/sitemap-index.xml`, canonical tags, and newsletter confirmation through `https://fruitfullseeds.com/eu/`.
+4. Keep this as a separate Vercel project and use its stable `fruitfull-seeds-eu.vercel.app` production alias as the upstream for the core site's `/eu` rewrites. The core rewrite removes `/eu` before forwarding; Astro's `base` setting adds it to every public URL returned to the browser.
+5. Deploy, then verify `/eu/robots.txt`, `/eu/sitemap-index.xml`, and canonical tags through `https://fruitfullseeds.com/eu/`.
 
 The EU seed library contains only genetics confirmed for European release. Rainbow Juice and Berry Mist are the first listed seeds.
 
 ## Drops and order administration
 
-The public Drops page is `/drops`. It remains in its newsletter empty state until an active catalog is synchronized. In local development, `/drops?preview=1` displays the inactive Rainbow Juice + Berry Mist draft for layout testing; the preview form cannot submit.
+The public Drops page is `/drops`. It remains in its empty state until an active catalog is synchronized. In local development, `/drops?preview=1` displays the inactive Rainbow Juice + Berry Mist draft for layout testing; the preview form cannot submit.
 
 Launch checkout is EUR-only with a server-enforced flat `€10.00` shipping charge per reservation. PayPal is the accepted payment method, and customers must provide the exact PayPal email or username where the team should send the manual payment request.
 
@@ -63,11 +60,11 @@ The admin routes are `/admin/login` and `/admin/orders`. Administrators must fir
 
 The schema enables RLS and removes browser-role access to orders, items, events, and notifications. Customer and admin mutations pass only through server routes. Do not log full API bodies or customer fields.
 
-## Cloudflare Turnstile and Brevo
+## Cloudflare Turnstile and transactional email
 
 Create a Turnstile widget for localhost, preview domains, and production, then configure `PUBLIC_TURNSTILE_SITE_KEY` and server-only `TURNSTILE_SECRET_KEY`. Reservation tokens are verified with Cloudflare before the transactional reservation function runs. Use Cloudflare's official test keys in automated tests.
 
-Brevo is collection-only for the initial launch. The transactional email function and deferred cron definition in `supabase/deferred-migrations/notification_cron.sql` remain available for a later phase, but should not be deployed until the order templates and operational workflow are ready. When that phase begins, create a newly timestamped migration from the deferred SQL rather than moving it directly into the active migration history.
+The Brevo-based transactional email function and deferred cron definition in `supabase/deferred-migrations/notification_cron.sql` remain available for a later phase, but should not be deployed until the order templates and operational workflow are ready. When that phase begins, create a newly timestamped migration from the deferred SQL rather than moving it directly into the active migration history.
 
 ## Privacy operations
 
