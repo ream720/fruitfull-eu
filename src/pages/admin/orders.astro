@@ -204,7 +204,7 @@ if (!session) return Astro.redirect(withBase('/admin/login'));
   table { width:100%; min-width:880px; border-collapse:separate; border-spacing:0; table-layout:fixed; }
   th,td { padding:1rem 1.15rem; border-bottom:1px solid var(--ff-border-subtle); text-align:left; vertical-align:middle; }
   th { color:var(--ff-text-muted); background:rgba(255,255,255,.012); font-size:.69rem; font-weight:900; text-transform:uppercase; letter-spacing:.1em; }
-  th:nth-child(1) { width:18%; } th:nth-child(2) { width:22%; } th:nth-child(3) { width:17%; } th:nth-child(4) { width:11%; } th:nth-child(5) { width:21%; } th:nth-child(6) { width:11%; }
+  th:nth-child(1) { width:17%; } th:nth-child(2) { width:21%; } th:nth-child(3) { width:17%; } th:nth-child(4) { width:11%; } th:nth-child(5) { width:18%; } th:nth-child(6) { width:16%; }
   td { color:var(--ff-text-primary); font-size:.875rem; line-height:1.35; }
   tbody tr { transition:background-color .18s ease; }
   tbody tr:hover { background:var(--ff-bg-tertiary); }
@@ -222,8 +222,8 @@ if (!session) return Astro.redirect(withBase('/admin/login'));
   .status-cancelled,.status-expired { border-color:var(--ff-border-subtle); background:var(--ff-bg-tertiary); color:var(--ff-text-secondary); }
   .expiry { display:block; margin-top:.35rem; color:var(--ff-status-upcoming); font-size:.72rem; line-height:1.35; }
   .expiry.expired { color:#ffabb3; }
-  .table-action { text-align:right; }
-  .table-button { white-space:nowrap; }
+  .table-action { padding-right:1.25rem; text-align:right; }
+  .table-button { display:inline-flex; max-width:100%; align-items:center; justify-content:center; padding-inline:.7rem; white-space:nowrap; }
   .empty-row { padding:2.5rem; color:var(--ff-text-muted); text-align:center; }
   .pagination { display:flex; align-items:center; justify-content:center; gap:1rem; margin-top:1rem; }
   .pagination span { color:var(--ff-text-secondary); font-size:.8rem; font-variant-numeric:tabular-nums; }
